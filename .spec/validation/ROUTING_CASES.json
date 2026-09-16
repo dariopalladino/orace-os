@@ -1,0 +1,154 @@
+{
+  "_comment": "Static routing assertions. `expect` must be selected, `reject` must not. Run by scripts/spec.py validate. These guard the mappings that are easy to get wrong \u2014 they do not prove an agent behaved correctly at runtime.",
+  "cases": [
+    {
+      "name": "frontend login form pulls identity and security, not backend or mobile packs",
+      "surfaces": [
+        "frontend",
+        "auth",
+        "implementation"
+      ],
+      "paths": [
+        "web/src/features/login/LoginForm.tsx"
+      ],
+      "expect": [
+        "protocol",
+        "principles",
+        "ui",
+        "security",
+        "play-react",
+        "play-auth0",
+        "testing"
+      ],
+      "reject": [
+        "play-kotlin",
+        "play-python",
+        "data-modelling",
+        "observability"
+      ]
+    },
+    {
+      "name": "backend endpoint change pulls api, security and the python pack",
+      "surfaces": [
+        "backend",
+        "api",
+        "implementation"
+      ],
+      "expect": [
+        "protocol",
+        "principles",
+        "api-design",
+        "security",
+        "clean-architecture",
+        "play-python",
+        "nonfunctional"
+      ],
+      "reject": [
+        "ui",
+        "play-react",
+        "play-kotlin",
+        "hitl"
+      ]
+    },
+    {
+      "name": "migration pulls data modelling, DDD and governance",
+      "surfaces": [
+        "data"
+      ],
+      "paths": [
+        "db/migrations/0007_add_settled_at.py"
+      ],
+      "expect": [
+        "data-modelling",
+        "ddd",
+        "security",
+        "governance",
+        "play-python"
+      ],
+      "reject": [
+        "ui",
+        "play-react",
+        "play-kotlin"
+      ]
+    },
+    {
+      "name": "mobile token storage pulls security and auth even though the path is native",
+      "surfaces": [
+        "native",
+        "auth",
+        "security"
+      ],
+      "paths": [
+        "mobile/feature/login/TokenStore.kt"
+      ],
+      "expect": [
+        "play-kotlin",
+        "play-auth0",
+        "security",
+        "ui",
+        "clean-architecture"
+      ],
+      "reject": [
+        "play-react",
+        "play-python",
+        "observability"
+      ],
+      "_note": "api-design is legitimately pulled in as a dependency of play-auth0: the Auth0 pack specialises the error-response rules."
+    },
+    {
+      "name": "an AI feature pulls AI governance and human-in-the-loop",
+      "surfaces": [
+        "ai",
+        "hitl",
+        "backend",
+        "implementation"
+      ],
+      "expect": [
+        "ai-governance",
+        "hitl",
+        "security",
+        "play-python",
+        "testing"
+      ],
+      "reject": [
+        "ui",
+        "play-react",
+        "play-kotlin"
+      ]
+    },
+    {
+      "name": "documentation-only work stays at the baseline",
+      "surfaces": [
+        "docs"
+      ],
+      "expect": [
+        "protocol",
+        "principles"
+      ],
+      "reject": [
+        "security",
+        "play-python",
+        "play-react",
+        "data-modelling",
+        "api-design"
+      ],
+      "max_tokens": 3000
+    },
+    {
+      "name": "a review task pulls the definition of done and agent conduct rules",
+      "surfaces": [
+        "review"
+      ],
+      "expect": [
+        "done",
+        "ai-governance",
+        "testing",
+        "governance"
+      ],
+      "reject": [
+        "play-react",
+        "play-kotlin"
+      ]
+    }
+  ]
+}

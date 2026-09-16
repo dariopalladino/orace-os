@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "framework": "sddf",
+  "architecture_root": ".spec/15_architecture",
+
+  "_comment_playbooks": "Activate only the playbook packs this system actually uses. /spec-bootstrap proposes this list from the ORACE module and deployment views. Add a new one with: python3 scripts/spec.py scaffold <id>",
+  "playbooks": [
+    "python-backend",
+    "react-frontend",
+    "kotlin-native",
+    "auth0-identity"
+  ],
+
+  "orchestration": "supervisor",
+
+  "_comment_module_roots": "Maps a path prefix to the surfaces it implies. Directories need not exist yet. A path may appear under several surfaces; every source root also implies 'implementation'.",
+  "module_roots": {
+    "backend": ["services/", "api/"],
+    "frontend": ["web/"],
+    "native": ["mobile/"],
+    "data": ["services/*/migrations/", "db/"],
+    "infra": ["infra/", ".github/workflows/"],
+    "testing": ["tests/"],
+    "implementation": ["services/", "api/", "web/", "mobile/"]
+  },
+
+  "context_budget": {
+    "warn_tokens": 20000,
+    "hard_tokens": 35000
+  },
+
+  "checks": {
+    "framework": [
+      "python3 scripts/spec.py validate",
+      "python3 scripts/sync_skills.py --check",
+      "python3 -m unittest discover -s tests -v"
+    ],
+    "backend_when_present": ["ruff check .", "mypy src", "pytest -q"],
+    "frontend_when_present": ["npm run lint", "npx tsc --noEmit", "npm test -- --run"],
+    "native_when_present": ["./gradlew ktlintCheck", "./gradlew testDebugUnitTest"]
+  }
+}

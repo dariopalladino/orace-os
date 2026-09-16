@@ -1,0 +1,42 @@
+# Operating contract
+
+This repository is governed by **SDDF** — specifications in `.spec/`, selected per task, with evidence preserved. This file is the short contract; it is loaded on every turn, so it stays short.
+
+## Before you change anything
+
+1. Route. `python3 scripts/spec.py select --task <id>` (or `--surface`/`--path`), or apply the `.spec/INDEX.md` table by hand. Read `.spec/project.json` for active playbooks, module roots, orchestration, and checks.
+2. Read every selected document **in full**. Never read the specification store wholesale, and never load what routing did not select.
+3. Classify by meaning, not by folder. A token-storage change inside a UI component is `frontend`, `auth`, **and** `security`. Role and path are hints; they cannot infer every security implication.
+4. Use the `spec-workflow` skill at `.agents/skills/spec-workflow/SKILL.md`. Read it directly if skill discovery is unavailable.
+
+## Precedence
+
+Architecture (an approved quality-attribute scenario `Measure`, an accepted ADR) → global policy in `.spec/00_global/` → playbook packs in `.spec/10_playbooks/` → the backlog task → existing code.
+
+Where a playbook or policy default and an architecture measure both speak to what you are changing, **the architecture governs** and the default falls away — record which, and why, in the task context. A security rule is the exception: it is never silently overridden by an ADR. Escalate instead. Platform and explicit user instructions outrank everything here.
+
+## Lifecycle
+
+`select → propose → execute → handoff → review → close`.
+
+- Proposal phases write only in `.spec/40_workspace/<task-id>/agent_<role>/`. Source files change only after approval, only inside the authorised file set.
+- Canonical paths — `00_global/`, `10_playbooks/`, the architecture root, `INDEX.md`, `project.json`, `TASKS.md` — change only by supervisor promotion with a `.spec/30_delivery/PROMOTION_LOG.md` entry.
+- Missing contract, real conflict, or a decision no ADR covers: stop and write `CLARIFICATIONS.md`. Do not invent it.
+- Never weaken a test, lint rule, type check, security control, or acceptance criterion to make your work pass.
+- Report exact commands and real output. Never claim a check you did not run.
+
+## Context
+
+Reuse source text you still hold; re-read after a scope change, a new session, or a compaction. A file hash proves the file is unchanged — it never proves the text is still in your context.
+
+As a sub-agent you receive routing **ids**, not bodies: load the documents yourself, stay inside your package's file ownership, and return a handoff plus a short message — not specification text or transcripts.
+
+## Framework checks
+
+```sh
+python3 scripts/spec.py validate
+python3 scripts/sync_skills.py --check
+python3 -m unittest discover -s tests -v
+```
+
+Application checks come from `.spec/project.json` and run when the affected application exists here.

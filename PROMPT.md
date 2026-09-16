@@ -1,0 +1,37 @@
+# Example prompts
+
+## Start a new system
+
+> Run `/orace-workshop .spec/15_architecture` with me. I want the architecture documented before we write any code.
+
+Then:
+
+> Run `/spec-bootstrap`. Register the architecture in the routing index, propose the playbooks from the module and deployment views, and derive the initial backlog from the scenarios and ADRs. Show me the proposal before writing anything canonical.
+
+## Adopt SDDF into an existing repository
+
+> Read `docs/ADOPTION.md` and integrate SDDF into this repository on a branch. Merge with the existing `AGENTS.md` and `CLAUDE.md` rather than overwriting them, set `.spec/project.json` from what you find in the repository, and stop before deriving a backlog so I can review.
+
+## Implement a task
+
+> Use the spec-workflow skill to implement PAY-014 from `.spec/20_backlog/TASKS.md`. Route with `scripts/spec.py select --task PAY-014`, record the task context, propose, and execute after I approve. Verify against the acceptance criteria and write a handoff.
+
+## Run a work package with sub-agents
+
+> Use supervisor orchestration for work package WP-AUTH. Dispatch one sub-agent per task with routing ids only, keep file ownership disjoint, and bring back handoffs. Do not implement anything yourself.
+
+## Proposal only
+
+> Use the spec-workflow skill to assess <request>. Produce a scoped proposal with a migration plan. This pass is proposal-only: write workspace artifacts, do not change source files or canonical specifications.
+
+## Review before close
+
+> Run `/spec-review PAY-014`. Judge whether every acceptance criterion is actually evidenced and whether the handoff documents need correction. Give me a verdict and the required actions.
+
+## Resume after a break
+
+> Resume PAY-014 from `.spec/40_workspace/PAY-014/TASK_CONTEXT.md` and the existing handoffs. Recheck scope and re-read the selected specifications; their text is no longer in your context.
+
+## Add a playbook for another technology
+
+> We are adding a Java service. Run `python3 scripts/spec.py scaffold java-backend`, write the pack from our actual conventions, register its routing row, add it to `project.json`, and validate.
