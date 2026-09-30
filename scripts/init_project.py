@@ -28,10 +28,8 @@ SKIP = {".git", "__pycache__", ".pytest_cache", ".DS_Store"}
 def copy_tree(source: Path, target: Path, force: bool, dry_run: bool, log: list[str]) -> None:
     if target.exists() and not force:
         if target.name == ".spec":
-            raise SystemExit(
-                f"error: {target} already exists. This repository may already be governed. "
-                "Merge by hand, or re-run with --force if you mean to replace it."
-            )
+            log.append(f"skipped {target} (already exists; use --force to replace)")
+            return
         log.append(f"merge into existing {target}")
     if dry_run:
         log.append(f"would copy {source.name}/ -> {target}")
@@ -104,10 +102,11 @@ def main(argv: list[str] | None = None) -> int:
         print(line)
 
     print("\nNext:")
-    print("  1. Edit .spec/project.json — playbooks, module_roots, checks, orchestration.")
-    print("  2. Run /orace-workshop .spec/15_architecture to capture the architecture.")
-    print("  3. Run /spec-bootstrap to register it and derive the backlog.")
+    print("  1. Run /orace-workshop .spec/15_architecture to capture the architecture and technology profile.")
+    print("  2. Run /spec-bootstrap to propose playbooks, module_roots, checks, routing, and backlog.")
+    print("  3. Review the proposed .spec/project.json changes; keep only evidenced commands and packs.")
     print("  4. python3 scripts/spec.py validate")
+    print("  Existing ORACE project? Use /orace-workshop .spec/15_architecture --rerun technology.")
     if args.dry_run:
         print("\n(dry run — nothing was written)")
     return 0

@@ -1,0 +1,26 @@
+# Task context
+
+- Task: `ORACE-README-001` — document the latest ORACE technology and token-usage workflow
+- Package: `WP-ORACE-README`
+- Scope: Update the top-level README so architects can understand and apply the completed technology-profile lifecycle and workshop-scoped token accounting without reading skill internals. Add deterministic README content-contract tests. Do not change workshop behavior, architecture schemas, application code, or generated adapters.
+- Phase: complete
+- Authorization: User request on 2026-09-28: “update the README.md with the latest changes, both the technology step and the token consumption tracking.”
+- Selected specifications:
+  - `protocol` — `.spec/00_global/AGENT_EXECUTION_PROTOCOL.md`
+  - `ai-governance` — `.spec/00_global/AI_GOVERNANCE.md`
+  - `clean-architecture` — `.spec/00_global/CLEAN_ARCHITECTURE.md`
+  - `ddd` — `.spec/00_global/DDD.md`
+  - `governance` — `.spec/00_global/GOVERNANCE.md`
+  - `hitl` — `.spec/00_global/HUMAN_IN_THE_LOOP.md`
+  - `principles` — `.spec/00_global/PRINCIPLES.md`
+  - `testing` — `.spec/00_global/TESTING.md`
+- Context estimate: 6,827 tokens reported by `scripts/spec.py select`; this is a `characters ÷ 4` routing estimate, not consumed workshop usage.
+- Governing implementation references: `.agents/skills/orace-workshop/SKILL.md` and `.agents/skills/spec-bootstrap/SKILL.md`.
+- Ownership: Primary/supervisor agent — `README.md`; README additions in `tests/test_orace_workflow.py`; this task's backlog, promotion-log, and workspace records.
+- Acceptance criteria:
+  - The README covers technology capture across ORACE phases, greenfield and brownfield behavior, artifact ownership, targeted reruns, and bootstrap consumption.
+  - The README covers measured, trace-counted, and unavailable token reporting; accounting and scope boundaries; billing limitations; and non-persistence.
+  - The README explicitly distinguishes selector context estimates from workshop consumption reports.
+  - Content-contract tests and all framework checks pass.
+- Validation: `python3 -m unittest tests.test_orace_workflow -v`; `python3 scripts/spec.py validate`; `python3 scripts/sync_skills.py --check`; `git diff --check`; `python3 -m unittest discover -s tests -v`; `python3 scripts/spec.py select --task ORACE-README-001`.
+- Progress: Complete. Independent review verdict is `accept`; all acceptance criteria are covered and no required actions remain.

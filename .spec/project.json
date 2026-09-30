@@ -3,7 +3,7 @@
   "framework": "sddf",
   "architecture_root": ".spec/15_architecture",
 
-  "_comment_playbooks": "Activate only the playbook packs this system actually uses. /spec-bootstrap proposes this list from the ORACE module and deployment views. Add a new one with: python3 scripts/spec.py scaffold <id>",
+  "_comment_playbooks": "Activate only the playbook packs this system actually uses. /spec-bootstrap proposes this list from accepted/retained rows in the ORACE technology profile and cross-checks the views/ADRs. Add a new one with: python3 scripts/spec.py scaffold <id>",
   "playbooks": [
     "python-backend",
     "react-frontend",
@@ -13,7 +13,7 @@
 
   "orchestration": "supervisor",
 
-  "_comment_module_roots": "Maps a path prefix to the surfaces it implies. Directories need not exist yet. A path may appear under several surfaces; every source root also implies 'implementation'.",
+  "_comment_module_roots": "Maps a path prefix to the surfaces it implies. /spec-bootstrap proposes roots from the confirmed module view and technology profile. Directories need not exist yet. A path may appear under several surfaces; every source root also implies 'implementation'.",
   "module_roots": {
     "backend": ["services/", "api/"],
     "frontend": ["web/"],

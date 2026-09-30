@@ -6,11 +6,15 @@
 
 Then:
 
-> Run `/spec-bootstrap`. Register the architecture in the routing index, propose the playbooks from the module and deployment views, and derive the initial backlog from the scenarios and ADRs. Show me the proposal before writing anything canonical.
+> Run `/spec-bootstrap`. Register the architecture in the routing index, propose playbooks and exact validation checks from the technology profile, cross-check the module and deployment views, and derive the initial backlog from scenarios, ADRs, and unresolved technology work. Show me the proposal before writing anything canonical.
 
 ## Adopt SDDF into an existing repository
 
-> Read `docs/ADOPTION.md` and integrate SDDF into this repository on a branch. Merge with the existing `AGENTS.md` and `CLAUDE.md` rather than overwriting them, set `.spec/project.json` from what you find in the repository, and stop before deriving a backlog so I can review.
+> Read `docs/ADOPTION.md` and integrate SDDF into this repository on a branch. Merge with the existing `AGENTS.md` and `CLAUDE.md` rather than overwriting them. Run the ORACE workshop so detected technologies are treated as evidence for me to classify, then have bootstrap propose `.spec/project.json`; stop before changing project configuration or deriving a backlog so I can review.
+
+## Refresh technology choices in an existing architecture
+
+> Run `/orace-workshop .spec/15_architecture --rerun technology`. Preserve the other phases and accepted ADRs, confirm observed technologies with me, and report affected views, routing rows, and tasks before proposing any downstream update.
 
 ## Implement a task
 

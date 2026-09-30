@@ -1,6 +1,6 @@
 ---
 name: orace-workshop
-description: "Guides an architect through the ORACE framework interview to generate architecture artifacts (outcomes, quality-attribute scenarios, ADRs, views, risk register, evidence plan, evolution backlog) suitable as input for AI coding agents. Use when the user wants to document the architecture of a system using the ORACE method."
+description: "Guides an architect through the ORACE framework interview to generate architecture artifacts (outcomes, quality-attribute scenarios, approaches, technology profile, ADRs, views, risk register, evidence plan, evolution backlog) suitable as input for AI coding agents. Use when the user wants to document or refresh the architecture of a new or existing system using the ORACE method."
 trigger: /orace-workshop
 ---
 
@@ -14,7 +14,37 @@ Conduct a structured ORACE architecture interview with the architect and generat
 /orace-workshop                        # run in ./architecture/ (creates folder if absent)
 /orace-workshop <path>                 # run in a specific folder
 /orace-workshop <path> --reset         # ignore existing files and start from scratch
+/orace-workshop <path> --rerun A       # rerun one completed phase (O, R, A, C, or E)
+/orace-workshop <path> --rerun technology  # refresh only the technology baseline and its impacts
 ```
+
+`--rerun` is the safe path for an existing architecture. It preserves every phase not named, reports the downstream artifacts and backlog tasks that may be invalidated, and asks before overwriting each affected file. `--reset` remains the destructive full restart and requires confirmation.
+
+### Token accounting for this invocation
+
+At the start of every workshop invocation—before the resume scan, repository discovery, or first interview question—establish a token-usage boundary:
+
+1. If the host exposes cumulative session usage, capture the current input, cached-input, output, reasoning, and total counters plus the measurement source.
+2. Otherwise, if the host exposes usage per completed turn, record the workshop start turn and plan to sum root-agent turns and any subagent turns attributable to this workshop.
+3. Otherwise record that measured usage is unavailable. Do not interrupt the interview to ask the architect for telemetry they do not have.
+
+Keep the boundary in session working state. It is operational metadata, not architecture: do not write it to `outcomes.md`, `technology-profile.md`, evidence artifacts, ADRs, or another file under the architecture root.
+
+At completion of a full workshop or a targeted rerun, report usage for **this invocation only** using the hierarchy below:
+
+- **Measured (host-reported, best-effort):** subtract the cumulative start snapshot from the latest completed-turn snapshot, or sum attributed per-turn usage. Include root-agent and workshop-related subagent turns. Reject negative deltas and fall back to `Unavailable` instead of guessing.
+- **Estimated (trace-counted):** use only when an actual model-aware token counter was run over an exported workshop trace. Name the counter, content counted, and exclusions. Never present `characters ÷ 4`, a selector context estimate, visible-text length, or intuition as consumed tokens.
+- **Unavailable:** use when neither measured usage nor a trace-counted estimate exists. State why; do not print zero or a plausible substitute.
+
+Accounting invariants:
+
+- `total_tokens = input_tokens + output_tokens`.
+- Cached input is already included in input tokens; show it as an indented subset and never add it again.
+- Reasoning tokens are already included in output tokens; show them as an indented subset and never add them again.
+- If the host omits a category, print `not reported` rather than treating it as zero.
+- Do not calculate monetary cost unless the architect separately asks and current model-specific pricing and cache treatment are available.
+- Host/session usage may be best-effort, may settle later, and is not a final bill.
+- A model normally cannot know the tokens used by the final response while generating that response. Unless the host supports post-response usage injection, the scope ends at the last completed turn immediately before the final summary; say so explicitly.
 
 ## What You Must Do When Invoked
 
@@ -47,7 +77,7 @@ ORACE Workshop — resume check
 ──────────────────────────────
 [O] Outcomes      → outcomes.md              ✓ done  /  ✗ missing
 [R] Requirements  → quality-scenarios.md     ✓ done  /  ✗ missing
-[A] Approaches    → decisions/ (N files)     ✓ done  /  ✗ missing
+[A] Approaches    → approaches.md + technology-profile.md + decisions/ (N files)  ✓ done  /  ✗ missing
 [C] Communication → views/ (context/module/runtime/deployment)  ✓ done  /  ✗ missing
 [E] Evidence      → evidence/evidence-plan.md  ✓ done  /  ✗ missing
 ──────────────────────────────
@@ -57,11 +87,19 @@ Resuming from Phase X.
 A phase is **done** when its primary output file exists and is non-empty.
 - O is done when `outcomes.md` exists
 - R is done when `quality-scenarios.md` exists
-- A is done when `decisions/` contains at least one `.md` file
-- C is done when `views/module.md`, `views/runtime.md`, and `views/deployment.md` all exist
+- A is done when `approaches.md` and `technology-profile.md` exist and are non-empty. The decision count is reported but zero ADRs is valid when no costly-to-reverse decision was identified.
+- C is done when `views/context.md`, `views/module.md`, `views/runtime.md`, and `views/deployment.md` all exist
 - E is done when `evidence/evidence-plan.md` exists
 
-Skip completed phases entirely. If all phases are done, report completion and offer to re-run a specific phase or run `/orace-adr` for new decisions.
+Skip completed phases entirely unless explicitly named by `--rerun`. An architecture produced by an older workshop will therefore resume at A when `approaches.md` or `technology-profile.md` is absent, without forcing Outcomes or Requirements to be repeated.
+
+### Targeted reruns
+
+Before a rerun, list the files that phase owns, whether each exists, the registered routing rows that point to them, and the open or completed backlog tasks that cite those rows. Explain that changed architecture may reopen those tasks. Do not write until the architect confirms the rerun scope.
+
+- `--rerun O`, `R`, `A`, `C`, or `E`: rerun only that phase. Do not automatically rerun later phases; report which later artifacts may now be stale and offer them one at a time.
+- `--rerun technology`: run Phase A's Technology Baseline step, reassess only new or changed technology choices for ADRs, then perform the Communication cross-check described below. Preserve `approaches.md`, existing ADRs, views, and evidence unless the architect separately approves their update.
+- If all phases are done and no `--rerun` target was supplied, report completion and offer `--rerun technology`, another specific phase, or `/orace-adr` for one new decision.
 
 ---
 
@@ -73,15 +111,19 @@ Ask the following questions **one at a time**, in order. Wait for the answer bef
 
 1. **System name and purpose**: "What is the name of the system, and what does it do in one or two sentences?"
 
-2. **Stakeholders**: "Who are the primary stakeholders? List each one and their main concern about the system." *(Prompt if vague: "Think about the people who would be in an architecture review: business owner, tech lead, compliance, security, operations. Who from that list applies here?")*
+2. **Project state**: "Is this a new system, an existing system, or a hybrid where new components will coexist with existing ones?" Record exactly one of `New`, `Existing`, or `Hybrid` and a one-sentence explanation.
 
-3. **Business outcomes**: "What are the 2–3 most critical business outcomes this system must deliver? Frame each as: 'The system must enable [who] to [do what] [under what condition]'."
+3. **Stakeholders**: "Who are the primary stakeholders? List each one and their main concern about the system." *(Prompt if vague: "Think about the people who would be in an architecture review: business owner, tech lead, compliance, security, operations. Who from that list applies here?")*
 
-4. **Failure risks**: "Which business failures must this system prevent? For each, describe the impact on the business, the users, or the regulatory position."
+4. **Business outcomes**: "What are the 2–3 most critical business outcomes this system must deliver? Frame each as: 'The system must enable [who] to [do what] [under what condition]'."
 
-5. **Constraints**: "Are there regulatory, compliance, or contractual constraints? Examples: GDPR, PCI-DSS, HIPAA, SOC 2, data residency requirements, SLA commitments." *(If none, record 'None identified'.)*
+5. **Failure risks**: "Which business failures must this system prevent? For each, describe the impact on the business, the users, or the regulatory position."
 
-6. **External dependencies**: "What external systems, APIs, or third-party providers does this system depend on or integrate with? List each and classify it as: critical (failure of this dependency fails the system) or non-critical."
+6. **Regulatory and contractual constraints**: "Are there regulatory, compliance, or contractual constraints? Examples: GDPR, PCI-DSS, HIPAA, SOC 2, data residency requirements, SLA commitments." *(If none, record 'None identified'.)*
+
+7. **Technology constraints**: "Which technologies are already present or mandated, preferred, or prohibited—and what is the source of each constraint? Include organization standards, team capabilities, licensing, support windows, hosting commitments, and procurement decisions. Do not list a preference as a mandate." *(If none, record `None identified`; the complete technology inventory belongs to Phase A.)*
+
+8. **External dependencies**: "What external systems, APIs, or third-party providers does this system depend on or integrate with? List each and classify it as: critical (failure of this dependency fails the system) or non-critical."
 
 After all answers are collected, write `outcomes.md` using the template below. Do not ask for confirmation before writing.
 
@@ -98,6 +140,9 @@ generated_at: YYYY-MM-DD
 
 ## One-Line Description
 [One sentence from Q1]
+
+## Project State
+[New | Existing | Hybrid] — [one-sentence explanation]
 
 ## Stakeholders
 
@@ -123,6 +168,12 @@ generated_at: YYYY-MM-DD
 |------------|------|--------|
 | [name] | Regulatory / Contractual / SLA | [regulation or agreement] |
 
+## Technology Constraints
+
+| Constraint | Classification | Source | Consequence |
+|------------|----------------|--------|-------------|
+| [technology or constraint] | Existing / Mandated / Preferred / Prohibited | [policy, repository evidence, owner, or agreement] | [what it enables or excludes] |
+
 ## External Dependencies
 
 | System / Provider | Classification | Notes |
@@ -137,6 +188,8 @@ After writing, tell the architect: "Phase O complete — `outcomes.md` written. 
 ## Phase R — Requirements (Quality-Attribute Scenarios)
 
 **Goal**: turn the failure risks identified in Phase O into measurable quality-attribute scenarios. Output: `quality-scenarios.md`.
+
+Keep Phase R implementation-neutral. A scenario describes required behaviour and a measurable outcome, not a preferred framework, database, cloud service, or vendor. If the architect answers with a technology, ask what behaviour or constraint that technology is meant to satisfy and record the technology later in Phase A.
 
 ### Step R-1: Identify quality attributes
 
@@ -219,9 +272,9 @@ After writing, tell the architect: "Phase R complete — `quality-scenarios.md` 
 
 ---
 
-## Phase A — Approaches (Tactics and Architecture Decisions)
+## Phase A — Approaches (Tactics, Technology, and Architecture Decisions)
 
-**Goal**: identify the tactics and key decisions that address each scenario. Output: one ADR file per key decision in `decisions/`, plus an `approaches.md` summary.
+**Goal**: identify the tactics that address each scenario, declare the technology baseline that realizes them, and record costly-to-reverse decisions. Outputs: `approaches.md`, `technology-profile.md`, zero or more ADRs in `decisions/`, and the risk register.
 
 ### Step A-1: Tactics per scenario
 
@@ -238,22 +291,123 @@ For each scenario in `quality-scenarios.md`, ask:
 - *Scalability: horizontal scaling, sharding, read replicas, queue-based load levelling*
 - *Recoverability: point-in-time backup, blue-green deployment, data replication across zones)*
 
-### Step A-2: Identify decisions that need ADRs
+Write `approaches.md` immediately after all scenario tactics are captured. A tactic is not automatically a technology choice: “queue-based load levelling” belongs here; “Azure Service Bus Premium” belongs in the technology profile and may require an ADR.
 
-After tactics are listed for all scenarios, ask:
+### approaches.md template
 
-"Of the decisions you just described, which 2–3 are the highest-stakes — the ones where choosing wrong would be hardest to reverse or most likely to create problems later?"
+```markdown
+---
+orace_phase: A
+generated_by: orace-workshop
+generated_at: YYYY-MM-DD
+system: [System Name]
+---
+
+# Architectural Approaches — [System Name]
+
+| Scenario | Tactic | What it addresses | Cost / Trade-off | Status |
+|----------|--------|-------------------|------------------|--------|
+| QA-[ATTR]-[NN] | [tactic] | [response or measure supported] | [complexity, cost, coupling, or operational burden] | Considering / Selected / Rejected |
+```
+
+### Step A-2: Technology baseline
+
+Read the `Project State` and Technology Constraints from `outcomes.md`. If an older `outcomes.md` lacks either section, ask for that information before continuing and record it in `technology-profile.md`; do not modify `outcomes.md` unless the architect separately approves `--rerun O`. The technology interview has two modes:
+
+- **New**: capture planned implementation units and proposed or accepted choices. A planned source-of-truth path is valid even before the file exists.
+- **Existing or Hybrid**: first inspect repository evidence using targeted file discovery (`rg --files`) for manifests, lockfiles, runtime/version files, container definitions, infrastructure code, CI workflows, and observability configuration. Do not scan dependency/vendor folders. Evidence is a candidate, not a decision: present what was observed and ask whether each choice is `Retain`, `Migrate`, `Retire`, or `TBD`. A lockfile alone does not prove a technology is intentionally used.
+
+If this is a first workshop and the module view does not exist yet, ask: "What are the independently buildable or deployable implementation units that need a technology choice?" Use provisional names and reconcile them during Phase C. If a module view already exists, use its component names and do not create synonyms.
+
+For each implementation unit, cover only applicable categories from this list:
+
+- language and runtime;
+- application framework or SDK;
+- persistence and data processing;
+- messaging and integration protocols;
+- hosting, orchestration, and infrastructure provisioning;
+- identity and security provider;
+- build and package management;
+- test, lint, type, schema, and architecture validation;
+- observability and operations.
+
+Ask the following fields **one at a time** for each choice:
+
+1. **Choice**: "What technology or service is used or proposed for [unit/category]?"
+2. **Version policy**: "Which major/runtime version or compatibility policy applies? Exact transitive versions stay in the manifest or lockfile."
+3. **Lifecycle status**: for a new choice, `Mandated`, `Proposed`, `Accepted`, or `TBD`; for an observed choice, `Retain`, `Migrate`, `Retire`, or `TBD`. A migration names both the current and target choice.
+4. **Rationale**: "Which constraint, tactic, quality scenario, team capability, or operational need supports this choice?"
+5. **Source of truth**: "Which repository path, platform configuration, or named owner proves or will own this choice?" For observed choices, verify the path exists. For planned choices, prefix it with `planned:`.
+6. **Guidance**: "Which existing SDDF playbook governs this choice?" If none exists, record `Missing — scaffold <id>`; do not stretch a different playbook.
+
+Then capture the important cross-unit technology contracts: protocol or format, schema/versioning policy, and compatibility expectation. Do not duplicate runtime flow steps that belong in `views/runtime.md`.
+
+Write `technology-profile.md`. It declares project-specific truth; reusable instructions for how to use a technology remain in `.spec/10_playbooks/`. Exact dependency versions remain in manifests and lockfiles, which the profile references instead of duplicating.
+
+### technology-profile.md template
+
+```markdown
+---
+orace_phase: A
+generated_by: orace-workshop
+generated_at: YYYY-MM-DD
+system: [System Name]
+project_state: [New | Existing | Hybrid]
+---
+
+# Technology Profile — [System Name]
+
+> Project-specific technology choices and their evidence. Exact dependency versions live in the referenced manifests and lockfiles; reusable implementation rules live in the active SDDF playbooks.
+
+## Technology Constraints
+
+| ID | Constraint | Classification | Source | Consequence |
+|----|------------|----------------|--------|-------------|
+| TC-001 | [constraint] | Existing / Mandated / Preferred / Prohibited | [evidence or owner] | [what it enables or excludes] |
+
+## Component Technology Baseline
+
+| Unit | Category | Current choice | Target choice | Version policy | Lifecycle status | Rationale / Traceability | Source of truth | Playbook |
+|------|----------|----------------|---------------|----------------|------------------|--------------------------|-----------------|----------|
+| [component] | [category] | [observed choice or N/A] | [selected or proposed choice] | [major/runtime/compatibility policy] | Mandated / Proposed / Accepted / Retain / Migrate / Retire / TBD | [TC/QA/tactic/team need; ADR if present] | [path, platform config, owner, or planned:path] | [playbook id or Missing — scaffold id] |
+
+## Integration Technology
+
+| From | To | Protocol / Format | Compatibility policy | Source / Decision |
+|------|----|-------------------|----------------------|-------------------|
+| [unit] | [unit or external dependency] | [HTTP/JSON, event/schema, file, etc.] | [versioning and compatibility rule] | [contract path, QA id, or ADR] |
+
+## Delivery Toolchain
+
+| Scope | Build / Package | Required checks | Configuration source |
+|-------|-----------------|-----------------|----------------------|
+| [unit] | [tool and version policy] | [exact repository commands when evidenced; otherwise TBD] | [manifest or planned:path] |
+
+## Unresolved Technology Decisions
+
+| Item | Owner | Resolution path |
+|------|-------|-----------------|
+| [TBD or missing playbook] | [stakeholder] | [ADR, spike, playbook scaffold, or evidence collection] |
+```
+
+### Step A-3: Identify decisions that need ADRs
+
+After tactics and the technology profile are drafted, ask:
+
+"Which 2–3 choices are highest-stakes—the ones where choosing wrong would be hardest to reverse, would cross a trust or provider boundary, or would put a quality scenario at risk?"
+
+Include technology choices in this assessment. A routine library with a clear source of truth does not need an ADR; a language/runtime commitment, primary datastore, broker, identity provider, cloud dependency, architectural framework, or cross-boundary AI provider usually does when alternatives have materially different consequences.
 
 For each identified high-stakes decision, run the ADR interview:
 
-1. "What is the title of this decision? Use an imperative phrase — for example: 'Use synchronous screening calls' or 'Adopt event sourcing for audit log'."
-2. "What is the context — what situation made this decision necessary? What forces are in tension?"
+1. "What is the title of this decision? Use an imperative phrase—for example: 'Use synchronous screening calls' or 'Adopt PostgreSQL for the order ledger'."
+2. "What is the context—what situation made this decision necessary? What forces are in tension?"
 3. "What alternatives did you consider? For each: what does it give you and what does it cost?"
 4. "What did you decide, and what did you explicitly decide NOT to do?"
-5. "What are the consequences — what becomes easier, what becomes harder, what risk is now accepted?"
+5. "What are the consequences—what becomes easier, what becomes harder, what risk is now accepted?"
 6. "Status: Proposed or Accepted?"
 
-Write each ADR immediately after the interview for that decision. Determine the next sequence number by counting existing `.md` files in `decisions/`.
+Write each ADR immediately after the interview. Determine the next sequence number by inspecting existing numbered ADR filenames, not by simply counting files. After the ADR is written, backfill its id into the related `approaches.md` or `technology-profile.md` traceability cell.
 
 ### decisions/NNN-<slug>.md template
 
@@ -266,6 +420,8 @@ status: [Proposed | Accepted | Deprecated | Superseded]
 scenarios_addressed:
   - [Quality Attribute 1]
   - [Quality Attribute 2]
+technology_profile_entries:
+  - [unit/category, when applicable]
 ---
 
 # ADR-[NNN]: [Title]
@@ -311,11 +467,11 @@ generated_at: YYYY-MM-DD
 | R-001 | [risk from ADR consequence] | ADR-NNN | Low/Med/High | Low/Med/High | [mitigation] | [owner] | Open |
 ```
 
-After all ADRs are written, tell the architect: "Phase A complete — [N] ADRs written in `decisions/`. Moving to Phase C."
+If no decision needs an ADR, record that conclusion at the end of `approaches.md`; do not create a ceremonial ADR. After Phase A, tell the architect: "Phase A complete—`approaches.md` and `technology-profile.md` written; [N] ADRs present in `decisions/`. Moving to Phase C."
 
 ---
 
-## Phase C — Communication (Three Views)
+## Phase C — Communication (Four Views)
 
 **Goal**: capture the three architectural views so that different stakeholders can read what is relevant to them. Output: `views/context.md`, `views/module.md`, `views/runtime.md`, `views/deployment.md`.
 
@@ -340,7 +496,11 @@ List the major components or services in this system. For each, tell me:
 - Its name
 - Its single responsibility (one sentence)
 - Which team or person owns it
-- Its main dependencies (what it calls or consumes)"
+- Its planned or existing repository root
+- Its main dependencies (what it calls or consumes)
+- Its persistence boundary and relationship to neighbouring modules, when applicable"
+
+Use the exact unit names from `technology-profile.md`. For each module, reference its technology-profile rows rather than copying the stack into the view. If the module list and profile disagree, stop and ask which name or boundary is authoritative before writing either file.
 
 Write `views/module.md`.
 
@@ -353,6 +513,8 @@ Describe 1–3 of the most important flows in the system. For each flow:
 - List the steps in order: [component] → [action] → [component]
 - Note which calls are synchronous and which are asynchronous
 - Note any timeouts, retries, or failure behaviours"
+
+Cross-check each protocol and format against `technology-profile.md` Integration Technology. The runtime view owns interaction order and failure behaviour; the profile owns the selected protocol technology and compatibility policy.
 
 Write `views/runtime.md`.
 
@@ -367,7 +529,11 @@ Tell me:
 4. Where does sensitive data live, and where is it NOT allowed to go?
 5. If there is an AI component: what can it read, what can it propose, and what can it never execute directly?"
 
-Write `views/deployment.md`.
+Reference the hosting, orchestration, identity, data, and observability entries from `technology-profile.md`; do not create a second technology inventory in the deployment view. Write `views/deployment.md`.
+
+### Communication cross-check
+
+After all views are drafted—or immediately after `--rerun technology` updates the profile—compare unit names, repository roots, integration protocols, hosting locations, managed services, and trust-boundary providers across `technology-profile.md` and the three views. Report mismatches individually. During a technology-only rerun, do not silently edit a view: offer `--rerun C`, explain which routing rows and tasks may be affected, and wait for approval.
 
 Use the following templates for each view:
 
@@ -413,6 +579,8 @@ Then ask:
 
 "Beyond the per-scenario metrics, are there any one-time validation tests or drills needed before the first production release? Examples: load test at 2× peak volume, chaos test killing a dependency, regulatory retrieval drill, provider-switch drill."
 
+Review `technology-profile.md` and ask one at a time about any architectural technology assumption that still needs proof: capacity, driver or protocol compatibility, migration safety, provider portability, operability, licensing, or support lifetime. Add a validation test only when it has a measurable pass criterion. Routine dependency-update checks do not belong in the architecture evidence plan.
+
 Finally ask:
 
 "When evidence fails and the architecture needs to evolve, what are the known improvement candidates — things you expect to revisit? These go into the evolution backlog."
@@ -442,6 +610,12 @@ generated_at: YYYY-MM-DD
 | Test | Scenario Validated | Pass Criterion | Owner |
 |------|--------------------|---------------|-------|
 | [test name] | [scenario] | [measurable pass/fail] | [team] |
+
+## Technology Assumption Tests
+
+| Assumption | Profile entry / ADR | Validation | Pass criterion | Owner |
+|------------|---------------------|------------|----------------|-------|
+| [architecturally significant technology assumption] | [unit/category or ADR] | [spike, compatibility test, migration rehearsal, capacity test] | [measurable result] | [team] |
 
 ## Governance Signals (for AI components, if present)
 
@@ -482,7 +656,9 @@ Artifacts written to: <path>
 
   outcomes.md                          [O — Outcomes]
   quality-scenarios.md                 [R — Requirements, N scenarios]
-  decisions/
+  approaches.md                        [A — Tactics mapped to scenarios]
+  technology-profile.md                [A — Technology baseline and evidence]
+  decisions/                           [A — Zero or more costly-to-reverse decisions]
     001-<name>.md                      [A — Approaches]
     002-<name>.md
     ...
@@ -500,10 +676,44 @@ These files are ready to use as context for an AI coding agent.
 
 Then check whether this repository is governed by SDDF (a `.spec/project.json` file exists):
 
-- **Governed repository.** Say: "Architecture complete. The next step is `/spec-bootstrap`, which registers these artifacts in `.spec/INDEX.md`, sets the active playbooks, derives the initial backlog from your scenarios and ADRs, and validates the result. Run it now?" Do not register rows or write backlog tasks yourself — that is the bootstrap skill's job and it validates as it goes.
+- **Governed repository.** Say: "Architecture complete. The next step is `/spec-bootstrap`, which registers these artifacts in `.spec/INDEX.md`, derives active playbooks and checks from the technology profile, derives or refreshes the backlog from your scenarios and ADRs, and validates the result. Run it now?" Do not register rows or write backlog tasks yourself — that is the bootstrap skill's job and it validates as it goes.
 - **Ungoverned folder.** Say: "These files are ready to use as architecture context. To have coding agents actually enforce them, adopt SDDF in this repository (`docs/ADOPTION.md`) and then run `/spec-bootstrap`."
 
 In both cases add: "Use `/orace-adr` to record further decisions as they emerge; each new ADR needs its routing row before it is finished."
+
+Finally, make the token-usage block the **last content** in the completion response. Do not add prose after it.
+
+When measured usage is available:
+
+```text
+Token usage — this ORACE workshop invocation
+────────────────────────────────────────────
+Accuracy: Measured (host-reported, best-effort)
+Source: <host session usage | summed turn usage | named source>
+Scope: <start boundary> through the last completed turn before this summary
+Input tokens: <N>
+  Cached input tokens: <N | not reported> (included in input)
+Output tokens: <N>
+  Reasoning tokens: <N | not reported> (included in output)
+Total tokens: <input + output>
+Includes workshop subagents: <yes, N turns | none used | attribution unavailable>
+Final-summary tokens included: <yes via post-response accounting | no — not knowable while generating this response>
+Billing note: best-effort usage; not a final bill
+```
+
+For a trace-counted estimate, use the same block with `Accuracy: Estimated (trace-counted)`, name the counter, and add `Exclusions: <anything not present in the exported trace>`. Use `not reported` for cached input and reasoning unless the trace source supplies them.
+
+When usage is unavailable:
+
+```text
+Token usage — this ORACE workshop invocation
+────────────────────────────────────────────
+Accuracy: Unavailable
+Source: host exposed no cumulative or per-turn usage, and no model-aware trace count was run
+Scope: this workshop invocation through the last completed turn before this summary
+Total tokens: not reported
+Final-summary tokens included: no — not knowable while generating this response
+```
 
 
 ---
@@ -516,6 +726,10 @@ In both cases add: "Use `/orace-adr` to record further decisions as they emerge;
 - Do not invent details. If an answer is missing, record the field as `[TBD — owner: <stakeholder>]`.
 - Write each phase's output file immediately after the interview for that phase. Do not wait until all phases are done.
 - Never overwrite an existing file without first telling the architect: "This file already exists. I will overwrite it. Proceed?"
+- A rerun updates only its named phase or subphase. Preserve existing prose, ids, accepted ADRs, risk ids, and evidence unless the architect explicitly changes them; prefer a focused patch over regenerating the file.
+- For existing systems, distinguish observed evidence from architectural intent. Never convert a detected dependency into `Retain` or `Accepted` without the architect's answer.
+- Never invent a technology, version, command, manifest path, playbook, or lifecycle status. Record `[TBD — owner: <stakeholder>]` or a missing-playbook action instead.
+- Never invent token usage or label a character heuristic as consumed tokens. If the host does not expose usage, print the `Unavailable` block.
 - If the architect skips a question with "I'll fill this in later", record `[TBD]` and continue.
 - If this folder is registered in `.spec/INDEX.md`, it is canonical. Re-running a phase over it is a promotion, not an edit: tell the architect which rows and which backlog tasks the change may invalidate, and record the change in `.spec/30_delivery/PROMOTION_LOG.md` afterwards.
 - If the architect uses the `--reset` flag, confirm before deleting any existing files: "This will overwrite all existing ORACE artifacts in `<path>`. Confirm?"

@@ -1,0 +1,32 @@
+> Superseded after the first independent review returned `reopen`; retained as audit history.
+
+### HANDOFF
+- Task: `ORACE-TECH-001`
+- Status: needs_review
+- Summary:
+  - Phase A now persists scenario tactics in `approaches.md` and project-specific technology choices in `technology-profile.md`, keeping requirements technology-neutral and exact dependency versions in manifests/lockfiles.
+  - New projects capture planned units, version policy, rationale, source-of-truth paths, delivery checks, and playbook coverage; costly choices flow into ADR assessment.
+  - Existing and hybrid projects inspect repository files as candidate evidence, require retain/migrate/retire/TBD confirmation, and can use `--rerun technology` without resetting or silently overwriting other phases.
+  - Communication and Evidence cross-check the profile; bootstrap uses it as the primary, evidence-backed source for playbooks, module roots, checks, routing, and unresolved technology work.
+  - Adoption, initialization, architecture-folder, configuration, and example-prompt guidance now use the same workshop-first flow.
+- Files changed: `.agents/skills/orace-workshop/SKILL.md`; `.agents/skills/spec-bootstrap/SKILL.md`; `.spec/project.json`; `.spec/15_architecture/README.md`; `.spec/20_backlog/TASKS.md`; `.spec/30_delivery/PROMOTION_LOG.md`; `README.md`; `PROMPT.md`; `docs/ADOPTION.md`; `scripts/init_project.py`; `tests/test_orace_workflow.py`; `.spec/40_workspace/orace-technology-profile/TASK_CONTEXT.md`; `.spec/40_workspace/orace-technology-profile/agent_framework/PROPOSED_CHANGES.md`; this handoff.
+- Commands run:
+  - `python3 scripts/spec.py select --surface architecture --surface planning --surface governance --surface docs --surface testing --json` — selected 9 specifications, 29,927 characters, approximately 7,481 tokens.
+  - `python3 -m unittest tests.test_orace_workflow -v` — 9 tests passed.
+  - `python3 scripts/spec.py validate` — passed: 19 registered specifications, 4 active playbooks.
+  - `python3 scripts/sync_skills.py --check` — passed: 1 adapter matches `.agents/skills`.
+  - `python3 -m unittest discover -s tests -v` — 33 tests passed; no skips, expected failures, quarantines, or flaky retries reported.
+  - `git diff --check` — passed with no output.
+  - `python3 scripts/spec.py select --task ORACE-TECH-001` — selected 9 specifications, 29,927 characters, approximately 7,481 tokens.
+- Evidence:
+  - New projects produce an agent-ready technology baseline — PRIN-02, PRIN-03, PRIN-09 — `test_technology_profile_has_agent_ready_traceability`, `test_requirements_stay_technology_neutral`, and `test_resume_requires_persisted_approaches_and_technology_profile` passed.
+  - Existing projects have a non-destructive, evidence-confirmed rerun — AIG-01, PROTO-07, PRIN-09 — `test_existing_project_discovery_requires_evidence_and_confirmation`, `test_targeted_technology_rerun_is_non_destructive`, and `test_older_architecture_gets_a_targeted_upgrade_path` passed.
+  - Bootstrap derives configuration from confirmed evidence and routes the new artifacts selectively — PRIN-02, PROTO-11 — `test_bootstrap_uses_profile_for_playbooks_roots_and_checks` and `test_bootstrap_registers_new_phase_a_artifacts_selectively` passed.
+  - User-facing workflow is consistent — PROTO-08 — `test_initializer_runs_workshop_before_bootstrap_configuration` passed; README, adoption guide, architecture README, and prompt examples describe the same ordering and rerun command.
+  - Framework integrity is preserved — AIG-03, TEST-13 — validation, synchronization, all 33 tests, routing preview, and whitespace checks passed with no skipped tests.
+- Requirements applied: PROTO-01 through PROTO-05, PROTO-08, PROTO-11; AIG-01 through AIG-05; PRIN-02, PRIN-03, PRIN-04, PRIN-09, PRIN-10; CA-08, CA-09; GOV-02, GOV-07; TEST-06, TEST-08, TEST-13.
+- Deviations: The approved scope was extended in the proposal before source edits to include `.spec/project.json` and later `PROMPT.md`, both required to remove contradictory workflow guidance. While editing the resume contract, Phase C completeness was corrected to require `views/context.md` as well as the other three documented views. README test-count comments were made non-numeric to avoid immediate drift after adding regression tests.
+- Checks not run: Backend, frontend, and native application checks were not run because this repository change affects Markdown skills/documentation, initializer output text, and standard-library contract tests only; no application source tree or dependency manifest was changed. A security review was not required because no authentication, authorization, data exposure, cryptography, payment, or personal-data behavior changed.
+- Risks and edge cases: The workflow is instruction-driven rather than a parser that validates generated profile tables. Very large multi-stack systems may need the profile split by stable component boundary, as the bootstrap skill now instructs. Existing outcomes without Project State or Technology Constraints require one-time interview answers during the technology rerun.
+- Residual risk: Contract tests prove the required instructions and templates are present, but they do not execute a full conversational workshop or verify the quality of a human architect's answers. A live dry run against one greenfield and one brownfield sample would provide higher-fidelity usability evidence.
+- Next steps: Run `/spec-review ORACE-TECH-001`; if accepted, mark the task and task context complete.

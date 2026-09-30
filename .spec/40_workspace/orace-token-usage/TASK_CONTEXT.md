@@ -1,0 +1,28 @@
+# Task context
+- Task: `ORACE-USAGE-001` — report workshop-scoped token consumption at completion
+- Package: `WP-ORACE-USAGE`
+- Scope: Add a portable token-usage accounting contract to the ORACE workshop and document it. Capture a start boundary, report host-measured usage when available, label estimates or unavailable data honestly, prevent category double-counting, and state that the in-progress final summary is excluded unless the host supports post-response accounting. Do not add billing estimates, API integrations, or persist usage as normative architecture.
+- Phase: complete
+- Authorization: User request on 2026-09-28: “add a final count of consumed tokens at the end of the orace workshop.” This authorizes the framework and canonical task/documentation changes in scope.
+- Playbooks: `auth0-identity`, `kotlin-native`, `python-backend`, `react-frontend` (active but not directly governing this framework-only change)
+- Selected specifications:
+  - `protocol` — `.spec/00_global/AGENT_EXECUTION_PROTOCOL.md` — baseline and governance dependency
+  - `ai-governance` — `.spec/00_global/AI_GOVERNANCE.md` — honest AI usage claims
+  - `clean-architecture` — `.spec/00_global/CLEAN_ARCHITECTURE.md` — architecture surface
+  - `ddd` — `.spec/00_global/DDD.md` — architecture surface
+  - `governance` — `.spec/00_global/GOVERNANCE.md` — architecture/governance surface
+  - `hitl` — `.spec/00_global/HUMAN_IN_THE_LOOP.md` — governance dependency
+  - `principles` — `.spec/00_global/PRINCIPLES.md` — baseline and one-source-of-truth rule
+  - `testing` — `.spec/00_global/TESTING.md` — testing surface
+- Context estimate: 6,827 tokens reported by `scripts/spec.py select`.
+- Governing requirements: No conflicts found. AIG-01/AIG-02/AIG-09 govern accuracy labeling: unknown usage must not become a plausible number. PRIN-02 keeps host usage as the source of truth. Official OpenAI documentation states session/turn usage is best-effort, may be null or settle later, and is not a final bill.
+- Ownership: primary/supervisor agent — `.agents/skills/orace-workshop/SKILL.md`, `.spec/20_backlog/TASKS.md`, `.spec/30_delivery/PROMOTION_LOG.md`, `README.md`, `docs/ADOPTION.md`, `tests/test_orace_workflow.py`, and this task workspace.
+- Acceptance criteria:
+  - The workshop records a usage boundary before the first interview question or rerun work and reports usage for only that invocation.
+  - The final summary distinguishes `Measured`, `Estimated`, and `Unavailable`, names the measurement source and scope, and never presents a character heuristic as consumed usage.
+  - Input/output totals do not double-count cached input or reasoning tokens; root and workshop-related subagent work are included when the host exposes attribution.
+  - The report explains that the current final-summary response is excluded unless post-response accounting is available and that measured usage is best-effort rather than a final bill.
+  - Token usage remains operational metadata and is not written into normative architecture artifacts.
+  - Framework validation, skill synchronization, and unit tests pass.
+- Validation: `python3 scripts/spec.py validate`; `python3 scripts/sync_skills.py --check`; `python3 -m unittest tests.test_orace_workflow -v`; `python3 -m unittest discover -s tests -v`; `git diff --check`.
+- Progress: Complete. Independent review verdict is `accept`; all acceptance criteria are covered and no required actions remain.

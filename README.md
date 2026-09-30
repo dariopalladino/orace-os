@@ -20,6 +20,7 @@ Each half has a hole exactly the shape of the other. ORACE produces requirements
 |---|---|---|
 | Why the system exists; what business failure it must prevent | ORACE | `outcomes.md` |
 | Measurable quality-attribute scenarios | ORACE | `quality-scenarios.md` |
+| Tactics and the project-specific technology baseline | ORACE | `approaches.md`, `technology-profile.md` |
 | Why each costly decision was made, and what was rejected | ORACE | `decisions/NNN-*.md` |
 | Component ownership, runtime flows, trust zones, AI boundaries | ORACE | `views/` |
 | What proves it works in production | ORACE | `evidence/evidence-plan.md` |
@@ -36,9 +37,10 @@ Each half has a hole exactly the shape of the other. ORACE produces requirements
 
 ```
  /orace-workshop          architecture interview          .spec/15_architecture/
-        │                 one question at a time          outcomes, scenarios, ADRs,
-        ▼                                                 views, risks, evidence plan
- /spec-bootstrap          register + derive                INDEX.md rows, playbooks,
+        │                 one question at a time          outcomes, scenarios, approaches,
+        ▼                                                 technology profile,
+                                                          ADRs, views, risks, evidence plan
+ /spec-bootstrap          register + derive                INDEX.md rows, playbooks, checks,
         │                                                  backlog with verbatim measures
         ▼
   spec-workflow           select → propose → execute       one sub-agent per work package
@@ -69,7 +71,7 @@ Then, in your agent:
 
 ```
 /orace-workshop .spec/15_architecture     # half a day, with real stakeholders
-/spec-bootstrap                            # register, pick playbooks, derive the backlog
+/spec-bootstrap                            # register; derive playbooks, checks, and backlog
 ```
 
 ```bash
@@ -78,16 +80,20 @@ python3 scripts/spec.py validate           # must be clean before the first task
 
 Run the workshop **first**. There is nothing to route until the architecture exists, and a backlog derived from guesses is worse than no backlog.
 
+During Phase A, the workshop writes the project-specific technology baseline that `/spec-bootstrap` uses to propose playbooks, module roots, and exact checks. At completion it also prints an accuracy-labelled token report for that workshop invocation; the report is operational feedback and is not stored as architecture.
+
 ### An existing repository
 
 Same installer, on a branch. It copies `.spec/`, `.agents/`, `.claude/`, `scripts/`, `tests/`, and **merges** rather than overwrites your `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` — your conventions stay, an SDDF section is appended below them. It refuses to overwrite an existing `.spec/`.
 
 Then:
 
-1. Edit `.spec/project.json` — active `playbooks`, `module_roots` mapped to your real directories, your real `checks`.
-2. Run `/orace-workshop`. For an existing system this is documentation rather than design, and it goes faster — but the `Measure` fields still need real numbers, and this is where you find out you do not have them.
-3. Run `/spec-bootstrap`, then `validate`.
+1. Run `/orace-workshop`. It inspects repository manifests and configuration as candidate evidence, then asks which observed technologies to retain, migrate, retire, or leave undecided. The `Measure` fields still need real numbers.
+2. Run `/spec-bootstrap`. It proposes active `playbooks`, `module_roots`, and exact validation `checks` from the confirmed technology profile; review the diff before approving it.
+3. Run `validate`.
 4. Calibrate the routing before you trust it (below), then run **one** proposal-only task and read what it selected.
+
+For an architecture created by an earlier version, rerun `/orace-workshop .spec/15_architecture`. Resume detection will leave completed Outcomes and Requirements alone and fill the missing `approaches.md` and `technology-profile.md`. Use `--rerun technology` later to refresh only the stack baseline.
 
 Full detail in [`docs/ADOPTION.md`](docs/ADOPTION.md). A complete requirement followed from a stakeholder's sentence to a closed task is in [`examples/WORKED_EXAMPLE.md`](examples/WORKED_EXAMPLE.md).
 
@@ -107,12 +113,12 @@ Full detail in [`docs/ADOPTION.md`](docs/ADOPTION.md). A complete requirement fo
 | `.spec/project.json` | Active playbooks, module roots, orchestration, context budget, checks |
 | `.spec/00_global/` | 15 policy packs: protocol, principles, governance, clean architecture, DDD, API, data modelling, OWASP security, AI governance, human-in-the-loop, UI, testing, observability, NFR, definition of done |
 | `.spec/10_playbooks/` | Technology packs: Python backend, React frontend, Kotlin native, Auth0 identity — plus any you add |
-| `.spec/15_architecture/` | This system's ORACE artifacts (empty until the workshop runs) |
+| `.spec/15_architecture/` | This system's ORACE artifacts, including its technology profile (empty until the workshop runs) |
 | `.spec/20_backlog/TASKS.md` | The only task list |
 | `.spec/30_delivery/PROMOTION_LOG.md` | Evidence for every canonical change |
 | `.spec/40_workspace/<task-id>/` | Task context, proposals, handoffs, reviews |
 | `scripts/spec.py` | Validate, select, scaffold |
-| `docs/`, `examples/`, `tests/` | Adoption, extension, a worked example, 24 tests |
+| `docs/`, `examples/`, `tests/` | Adoption, extension, a worked example, and framework tests |
 
 Every rule in every pack has a stable id — `SEC-03`, `CA-02`, `PY-08`, `KT-12` — so a handoff, a review finding, or a rejection can cite it and a human can look it up.
 
@@ -222,7 +228,7 @@ The packs are opinionated on purpose — vague policy produces vague compliance.
 ```bash
 python3 scripts/spec.py validate          # registry, coverage, routing cases, budgets
 python3 scripts/sync_skills.py --check    # host adapters match the canonical skill tree
-python3 -m unittest discover -s tests -v  # 24 tests
+python3 -m unittest discover -s tests -v  # framework test suite
 python3 scripts/spec.py playbooks         # what is registered, what is active
 python3 scripts/spec.py select --task PAY-014
 ```
@@ -255,10 +261,74 @@ Five phases, interviewed one question at a time, each writing its output before 
 |---|---|---|
 | **O** — Outcomes | `outcomes.md` | What must this system achieve, and which business failures must it prevent? |
 | **R** — Requirements | `quality-scenarios.md` | Turn each failure into a scenario with source, stimulus, environment, artifact, response, and a **measure containing a number** |
-| **A** — Approaches | `decisions/`, `risks/` | Which tactics address each scenario, and which decisions are costly enough to reverse that they need an ADR? |
+| **A** — Approaches | `approaches.md`, `technology-profile.md`, `decisions/`, `risks/` | Which tactics address each scenario, which technologies realize them, and which choices are costly enough to reverse that they need an ADR? |
 | **C** — Communication | `views/` | Context, module, runtime, and deployment views — including trust zones and what an AI component may read, propose, and never execute |
 | **E** — Evidence | `evidence/`, `evolution/` | Which production metrics prove the architecture works, and what gets revisited when they fail? |
 
-The version vendored here differs from standalone ORACE in three ways: it writes into `.spec/15_architecture` by default, it assigns each scenario a stable `QA-<ATTR>-<NN>` id that becomes an acceptance criterion and a test name, and it hands off to `/spec-bootstrap` instead of stopping at a file listing. `/orace-adr` records one decision at a time afterwards — and is the supervisor's answer when a task escalates a decision no ADR covers.
+### Technology baseline: project truth, not generic guidance
+
+Technology enters the workshop deliberately, without contaminating the requirements with implementation choices:
+
+- **Phase O** records whether the project is `New`, `Existing`, or `Hybrid`, plus technologies that are present, mandated, preferred, or prohibited and the source of each constraint.
+- **Phase R** remains implementation-neutral. A quality scenario says what the system must do and how success is measured, not which framework must do it.
+- **Phase A** maps tactics to those scenarios in `approaches.md`, then writes the choices that realize them to `technology-profile.md`. A costly-to-reverse choice also gets an ADR; routine library selection does not need ceremonial decision records.
+- **Phase C** reconciles component names, protocols, hosting, managed services, and trust-boundary providers with the module, runtime, and deployment views. The views reference the profile instead of becoming a second stack inventory.
+- **Phase E** adds measurable tests for architectural technology assumptions such as capacity, compatibility, migration safety, portability, operability, licensing, or support lifetime.
+
+For a **new** project, the profile records planned implementation units, proposed or accepted choices, version policies, rationale, and planned source-of-truth paths—even before those paths exist. For an **existing or hybrid** project, manifests, lockfiles, runtime files, containers, infrastructure, CI, and observability configuration are candidate evidence only. The architect classifies each observed choice as `Retain`, `Migrate`, `Retire`, or `TBD`; discovery never silently turns an installed dependency into architectural intent.
+
+Each artifact owns a different part of the answer:
+
+| Source | Owns |
+|---|---|
+| `technology-profile.md` | Project-specific choice, current and target state, lifecycle status, version policy, rationale, evidence, and playbook mapping |
+| `decisions/NNN-*.md` | Why a costly-to-reverse choice was accepted, its alternatives, and its consequences |
+| `views/` | Where components live and how they interact, execute, and deploy |
+| `.spec/10_playbooks/` | Reusable rules for implementing a technology correctly |
+| Manifests and lockfiles | Exact direct and transitive dependency versions |
+| `.spec/project.json` | Active playbooks, module roots, orchestration, and exact repository checks |
+
+Older architectures do not need a new workshop from scratch. Refresh only the technology baseline with:
+
+```text
+/orace-workshop .spec/15_architecture --rerun technology
+```
+
+The rerun preserves Outcomes, Requirements, approaches, accepted ADRs, views, and evidence unless the architect explicitly changes them. It reports downstream artifacts and tasks that may now be stale rather than silently rewriting them. `/spec-bootstrap` then treats the confirmed profile as the primary source for proposed playbooks, module roots, checks, and selective routing; it flags missing packs and contradictions with views or accepted ADRs for review.
+
+### Workshop token consumption
+
+Every completed workshop or targeted rerun ends with a token-usage block for **that invocation only**. Its boundary is established before resume detection, repository discovery, or the first interview question. Root-agent turns and attributable workshop subagent turns are included when the host exposes enough telemetry.
+
+| Accuracy | When it is used |
+|---|---|
+| **Measured (host-reported, best-effort)** | The host exposes cumulative session snapshots or per-turn usage that can be attributed to the invocation |
+| **Estimated (trace-counted)** | A named, model-aware tokenizer actually counts an exported workshop trace; the counter, counted content, and exclusions are disclosed |
+| **Unavailable** | Neither suitable host telemetry nor a trace-counted estimate exists; the workshop reports why instead of printing zero or a plausible substitute |
+
+The accounting identity is `total_tokens = input_tokens + output_tokens`. Cached input is already included in input, and reasoning tokens are already included in output; both may be displayed as subsets but are never added twice. A category the host omits is shown as `not reported`, not zero.
+
+A typical measured block looks like this:
+
+```text
+Token usage — this ORACE workshop invocation
+Accuracy: Measured (host-reported, best-effort)
+Source: <host session usage | summed turn usage | named source>
+Scope: <start boundary> through the last completed turn before this summary
+Input tokens: <N>
+  Cached input tokens: <N | not reported> (included in input)
+Output tokens: <N>
+  Reasoning tokens: <N | not reported> (included in output)
+Total tokens: <input + output>
+Includes workshop subagents: <yes, N turns | none used | attribution unavailable>
+Final-summary tokens included: <yes via post-response accounting | no — not knowable while generating this response>
+Billing note: best-effort usage; not a final bill
+```
+
+Unless the host can inject usage after the response, a model cannot count the final summary while it is still generating it, so the scope ends at the last completed turn and says so. The workshop does not infer monetary cost, and host figures may settle later. This is operational session metadata, not architectural truth, so it is not persisted in `outcomes.md`, `technology-profile.md`, ADRs, or evidence artifacts.
+
+The `characters ÷ 4` figures in [How selective loading works](#how-selective-loading-works) are rough selector context estimates. They describe what a compliant agent should load; they are never reported as consumed workshop tokens.
+
+The version vendored here writes into `.spec/15_architecture` by default, assigns each scenario a stable `QA-<ATTR>-<NN>` id that becomes an acceptance criterion and a test name, records a project-specific technology profile, supports targeted phase and technology reruns, and hands off to `/spec-bootstrap` instead of stopping at a file listing. `/orace-adr` records one decision at a time afterwards—and is the supervisor's answer when a task escalates a decision no ADR covers.
 
 That last point is the neatest fit between the two halves: **an ORACE decision record is the answer to an SDDF clarification.** The agent that hits an undecided question does not choose. It stops, the decision gets made and recorded by a human, the row gets registered, and the task resumes — which is how an architecture stays true six months after the workshop.

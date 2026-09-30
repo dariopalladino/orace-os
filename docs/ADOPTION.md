@@ -6,13 +6,15 @@ How to put SDDF into a repository. Two paths: a new system, and one that already
 
 ```
 1. /orace-workshop .spec/15_architecture      half a day with real stakeholders
-2. /spec-bootstrap                            register rows, pick playbooks, derive the backlog
+2. /spec-bootstrap                            register rows; derive playbooks, checks, and backlog
 3. python3 scripts/spec.py validate           must be clean before the first task
 4. one proposal-only task in each host you use — inspect what it selected
 5. one real task end to end, through /spec-review
 ```
 
 Do the workshop **first**. There is nothing for the framework to route until the architecture exists, and a backlog derived from guesses is worse than no backlog.
+
+The completion response includes token usage for that workshop invocation when the host exposes session or turn accounting. It labels the source and accuracy; if usage is unavailable it says so rather than substituting a character estimate. The currently generated final summary is normally outside the count, and the report calls out that boundary. Token usage is operational metadata and is not written into the architecture tree.
 
 ## Existing repository
 
@@ -26,27 +28,39 @@ python3 scripts/init_project.py --target /path/to/your/repo
 
 It copies `.spec/`, `.agents/`, `.claude/`, `scripts/`, and `tests/`, and **merges** rather than overwrites `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` — your existing instructions are preserved above an appended SDDF section. It refuses to clobber an existing `.spec/`; use `--force` only when you mean it.
 
-**2. Configure `.spec/project.json`.**
+**2. Capture the architecture you already have.**
 
-- `playbooks` — only the packs you actually use. A pack you activate but do not follow is noise on every task.
-- `module_roots` — map your real directories to surfaces. This is what turns a file path into a routing decision, so it is worth getting right. Include a source root under `implementation`.
-- `checks` — your real commands. Do not leave the defaults if they are not what you run.
-- `orchestration` — `supervisor` for multi-package work, `sequential` for a single agent doing the stages in order. The gates are identical.
+You almost certainly have decisions, none of them written down in a form an agent can load. Run `/orace-workshop .spec/15_architecture`. For an existing system it is a documentation exercise rather than a design one, and it goes faster—but the `Measure` fields still need real numbers, and this is the moment to discover you do not have them.
 
-**3. Capture the architecture you already have.**
-
-You almost certainly have decisions, none of them written down in a form an agent can load. Run `/orace-workshop .spec/15_architecture`. For an existing system it is a documentation exercise rather than a design one, and it goes faster — but the `Measure` fields still need real numbers, and this is the moment to discover you do not have them.
+The workshop inspects manifests, lockfiles, runtime files, containers, infrastructure, CI, and observability configuration as candidate evidence. It does not equate detection with intent: you confirm whether each observed technology should be retained, migrated, retired, or left TBD. The resulting `technology-profile.md` references the files that own exact versions instead of copying their contents.
 
 If you already have architecture documents elsewhere in the repository, leave them where they are and register those paths in `.spec/INDEX.md` instead. The index takes any repository-relative path. Placement matters far less than registration.
 
-**4. Bootstrap and validate.**
+If this repository already has ORACE artifacts from an older framework version, rerun the workshop at the same path. Resume detection skips complete Outcomes and Requirements and fills missing Phase A artifacts. For future stack changes, use:
+
+```sh
+/orace-workshop .spec/15_architecture --rerun technology
+```
+
+That refreshes the technology baseline and reports affected views, routing rows, and backlog tasks without silently rewriting them.
+
+**3. Bootstrap, review project configuration, and validate.**
 
 ```sh
 /spec-bootstrap
 python3 scripts/spec.py validate
 ```
 
-**5. Calibrate the routing before you trust it.**
+Bootstrap proposes rather than guesses:
+
+- `playbooks` from accepted/retained technology-profile rows;
+- `module_roots` from confirmed module names and repository roots;
+- `checks` only when the profile records exact commands and their configuration source;
+- backlog work for unresolved technology decisions, migrations, retirements, evidence collection, or missing playbooks.
+
+Review the proposed `.spec/project.json` diff. Keep only playbooks you actually use, ensure every source root maps to the correct surfaces (including `implementation`), preserve intentional manual checks, and choose `supervisor` or `sequential` orchestration for your team.
+
+**4. Calibrate the routing before you trust it.**
 
 ```sh
 python3 scripts/spec.py select --surface frontend --surface auth --path web/src/login.tsx
@@ -54,7 +68,7 @@ python3 scripts/spec.py select --surface frontend --surface auth --path web/src/
 
 Read the output. Did the deployment view arrive for an auth change? Did an unrelated playbook stay out? Did the estimate land inside your budget? Fix surfaces now, not after ten tasks have been routed wrongly. Add the cases you care about to `.spec/validation/ROUTING_CASES.json` so a future edit cannot break them silently.
 
-**6. Start small.**
+**5. Start small.**
 
 One proposal-only task. Read what it selected and what it wrote. Then one real task through the full lifecycle including `/spec-review`. Do not convert the whole backlog on day one.
 
