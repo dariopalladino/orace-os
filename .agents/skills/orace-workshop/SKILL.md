@@ -406,6 +406,7 @@ For each identified high-stakes decision, run the ADR interview:
 4. "What did you decide, and what did you explicitly decide NOT to do?"
 5. "What are the consequences—what becomes easier, what becomes harder, what risk is now accepted?"
 6. "Status: Proposed or Accepted?"
+7. "Who owns this decision, and which repository paths or module roots does it govern? Use directory prefixes ending in `/`, or exact files."
 
 Write each ADR immediately after the interview. Determine the next sequence number by inspecting existing numbered ADR filenames, not by simply counting files. After the ADR is written, backfill its id into the related `approaches.md` or `technology-profile.md` traceability cell.
 
@@ -417,6 +418,9 @@ orace_phase: A
 generated_by: orace-workshop
 generated_at: YYYY-MM-DD
 status: [Proposed | Accepted | Deprecated | Superseded]
+owner: [person or accountable role]
+affected_paths:
+  - [repository-relative directory prefix or exact file]
 scenarios_addressed:
   - [Quality Attribute 1]
   - [Quality Attribute 2]

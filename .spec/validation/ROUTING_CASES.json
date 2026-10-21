@@ -3,6 +3,7 @@
   "cases": [
     {
       "name": "frontend login form pulls identity and security, not backend or mobile packs",
+      "playbooks": ["react-frontend", "auth0-identity"],
       "surfaces": [
         "frontend",
         "auth",
@@ -29,6 +30,7 @@
     },
     {
       "name": "backend endpoint change pulls api, security and the python pack",
+      "playbooks": ["python-backend"],
       "surfaces": [
         "backend",
         "api",
@@ -52,6 +54,7 @@
     },
     {
       "name": "migration pulls data modelling, DDD and governance",
+      "playbooks": ["python-backend"],
       "surfaces": [
         "data"
       ],
@@ -72,7 +75,16 @@
       ]
     },
     {
+      "name": "service migration wildcard pulls data rules",
+      "playbooks": ["python-backend"],
+      "module_roots": {"data": ["services/*/migrations/"], "backend": ["services/"]},
+      "paths": ["services/payments/migrations/001_add_receipt.py"],
+      "expect": ["data-modelling", "ddd", "security", "governance", "play-python"],
+      "reject": ["play-react", "play-kotlin"]
+    },
+    {
       "name": "mobile token storage pulls security and auth even though the path is native",
+      "playbooks": ["kotlin-native", "auth0-identity"],
       "surfaces": [
         "native",
         "auth",
@@ -97,6 +109,7 @@
     },
     {
       "name": "an AI feature pulls AI governance and human-in-the-loop",
+      "playbooks": ["python-backend"],
       "surfaces": [
         "ai",
         "hitl",
@@ -118,6 +131,7 @@
     },
     {
       "name": "documentation-only work stays at the baseline",
+      "playbooks": [],
       "surfaces": [
         "docs"
       ],
@@ -136,6 +150,7 @@
     },
     {
       "name": "a review task pulls the definition of done and agent conduct rules",
+      "playbooks": [],
       "surfaces": [
         "review"
       ],

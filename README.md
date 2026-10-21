@@ -1,6 +1,6 @@
 # SDDF — Spec-Driven Development Framework
 
-**Architecture that AI coding agents actually read, and a lifecycle that makes them prove they read it.**
+**An adaptive engineering framework that gives each change relevant architecture context, proportional controls, and inspectable verification evidence.**
 
 SDDF is a portable governance layer for coding agents — Claude Code, Codex, GitHub Copilot, or anything you can point at a file. It wraps [ORACE](#orace-the-front-door), an architecture method that produces a traceable chain from business outcome to production metric, and turns that architecture into constraints an agent is handed at the moment it writes code.
 
@@ -33,7 +33,7 @@ Each half has a hole exactly the shape of the other. ORACE produces requirements
 
 ---
 
-## The pipeline
+## The full architecture pipeline
 
 ```
  /orace-workshop          architecture interview          .spec/15_architecture/
@@ -54,48 +54,79 @@ Each half has a hole exactly the shape of the other. ORACE produces requirements
         └──── production evidence fails ──▶ /orace-adr or a workshop phase ──▶ back to the top
 ```
 
-Nothing between those steps is automatic, and that is deliberate. The one step people skip — registering the architecture in the routing index — is the step `scripts/spec.py validate` refuses to let you skip.
+This is the Governed path for architecture work. Routine fixes can start from an ad hoc task request. Architecture generated from repository discovery stays a proposal until a person accepts and registers it.
 
 ---
 
 ## Quick start
 
-### A new system
+### First useful task
 
 ```bash
-python3 scripts/init_project.py --target /path/to/your/repo
+python3 scripts/orace.py init --target /path/to/your/repo
 cd /path/to/your/repo
+python3 scripts/spec.py validate
+python3 scripts/orace.py task "Fix the submit button spacing" --path web/src/SubmitButton.tsx --surface frontend --output .spec/40_workspace/submit-button/plan.json
 ```
 
-Then, in your agent:
+`init` preserves existing instruction files and writes `.spec/40_workspace/PROJECT_DISCOVERY.json` as a **proposal**. It lists observed manifests, tests, CI, possible decisions, suggested playbooks, and explicit unknowns. A fresh install starts with no active playbooks or module roots; the first task above supplies its surface explicitly. Confirm the proposal and configure `.spec/project.json` before expecting path-based routing to be complete. The discovery report never marks a dependency or inferred architecture as accepted.
+
+### Codex
+
+Open the installed repository in Codex CLI, the IDE extension, or the Codex app. Codex reads `AGENTS.md`, discovers the five skills in `.agents/skills/`, and can use project role agents from `.codex/agents/`. Invoke a skill with `$orace-workshop`, `$spec-bootstrap`, `$spec-workflow`, `$orace-adr`, or `$spec-review`, or ask Codex to work on a task and let the skill description route it. For a supervised task, the main agent coordinates; the `orace_*` agents receive scoped packages. The [Codex guide](docs/CODEX.md) has setup, prompts, and a verification checklist.
+
+The task command selects registered requirements, shows inferred surfaces for confirmation, recommends Lite, Standard, or Governed based on risk, and writes a reviewable execution plan. It does not edit source code. `run --plan <plan.json> --command '<executor command>' --evidence <evidence.json>` can invoke a chosen executable, check its changed-file scope, run configured checks, and produce a review preflight. It does not bundle or install a coding agent. Use `explain` with the same arguments to inspect routing, or `verify --check <group> --task <id> --output <path>` when implementing manually.
+
+For a new enterprise architecture, continue in your agent:
 
 ```
-/orace-workshop .spec/15_architecture     # half a day, with real stakeholders
+/orace-workshop .spec/15_architecture     # capture architecture with stakeholders
 /spec-bootstrap                            # register; derive playbooks, checks, and backlog
 ```
 
 ```bash
-python3 scripts/spec.py validate           # must be clean before the first task
+python3 scripts/spec.py validate
 ```
 
-Run the workshop **first**. There is nothing to route until the architecture exists, and a backlog derived from guesses is worse than no backlog.
+The baseline policies and playbooks can route a first task before a full ORACE interview. Unknown quality measures stay unresolved; do not invent numbers to complete onboarding.
 
 During Phase A, the workshop writes the project-specific technology baseline that `/spec-bootstrap` uses to propose playbooks, module roots, and exact checks. At completion it also prints an accuracy-labelled token report for that workshop invocation; the report is operational feedback and is not stored as architecture.
 
 ### An existing repository
 
-Same installer, on a branch. It copies `.spec/`, `.agents/`, `.claude/`, `scripts/`, `tests/`, and **merges** rather than overwrites your `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` — your conventions stay, an SDDF section is appended below them. It refuses to overwrite an existing `.spec/`.
+Use the same `init` command on a branch. It copies a clean specification template and a managed runtime—CLI scripts, skills, host adapters, and the PR check—while leaving the framework's internal tests and task history behind. It **merges** rather than overwrites your `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. Existing project files are preserved; repeat installations use `upgrade`.
 
 Then:
 
-1. Run `/orace-workshop`. It inspects repository manifests and configuration as candidate evidence, then asks which observed technologies to retain, migrate, retire, or leave undecided. The `Measure` fields still need real numbers.
-2. Run `/spec-bootstrap`. It proposes active `playbooks`, `module_roots`, and exact validation `checks` from the confirmed technology profile; review the diff before approving it.
-3. Run `validate`.
-4. Calibrate the routing before you trust it (below), then run **one** proposal-only task and read what it selected.
+1. Read the discovery proposal, confirm the actual stack and module roots, and adjust `.spec/project.json` and routing cases.
+2. Run `validate`, then try a real ad hoc task and inspect `explain` output.
+3. When an accepted architecture decision or measurable quality objective is needed, run `/orace-workshop` and `/spec-bootstrap`. The workshop inspects repository facts as candidates and asks which technologies to retain, migrate, retire, or leave undecided.
 
 For an architecture created by an earlier version, rerun `/orace-workshop .spec/15_architecture`. Resume detection will leave completed Outcomes and Requirements alone and fill the missing `approaches.md` and `technology-profile.md`. Use `--rerun technology` later to refresh only the stack baseline.
 
 Full detail in [`docs/ADOPTION.md`](docs/ADOPTION.md). A complete requirement followed from a stakeholder's sentence to a closed task is in [`examples/WORKED_EXAMPLE.md`](examples/WORKED_EXAMPLE.md).
+
+---
+
+## Task modes and evidence
+
+| Mode | Trigger | Required work |
+|---|---|---|
+| Lite | Narrow, low-risk repair | Selected specs, scoped change, relevant checks, compact result |
+| Standard | Feature or refactor | Concrete criteria, concise plan, verification, structured review |
+| Governed | Security, authentication, sensitive data, contracts, irreversible change, accepted architecture impact | Explicit proposal and approvals, stronger evidence, independent review |
+
+`task --mode lite` may escalate to Standard or Governed. Description and filename clues are marked as inferences, and the coding agent must confirm them against the actual behavior. A path with no `module_roots` mapping needs explicit classification. `python3 scripts/orace.py coverage --path <path>` reports mapping; `coverage --diff HEAD` checks changed, deleted, renamed, and untracked paths. In `project.json`, `*` matches one directory segment and `**` matches any depth.
+
+`verify` executes only commands configured in `.spec/project.json`, without a shell, and records exit codes, timestamps, redacted output tails, commit SHA, and a changed-file fingerprint. Add `--authorized-path <path> --base HEAD` to check changed-file scope. `check` and `review` reject evidence when the commit or worktree has changed since verification. The record limits its claim to command execution and optional scope; a passing unit test cannot establish a production recovery target. Review output before sharing it because automated redaction cannot recognize every form of sensitive data.
+
+`task --executor external --external-name <method> --output <plan.json>` exports a JSON execution contract for another coding method. `review --plan <plan.json> --handoff <handoff.json> --evidence <evidence.json>` checks the returned scope and machine evidence; it leaves behavioral claims for a reviewer. The agreement on approval, decision authority, and handoff fields is in [`docs/EXECUTION_ADAPTERS.md`](docs/EXECUTION_ADAPTERS.md).
+
+`run` executes a saved plan through an explicit command, exports `ORACE_PLAN_PATH` to that process, compares the worktree before and after execution, and captures the configured checks. Unmapped plan paths need `--authorize-path`; Governed plans also need a plan-bound `--approval-record`. The run report is ready for human review when the mechanical checks pass; it does not declare behavioral acceptance. See the [execution guide](docs/EXECUTION_ADAPTERS.md) for the command and approval formats.
+
+`impact --path <path>` and `check --diff <base...HEAD>` show affected ADRs, policy selection, routing gaps, and check evidence. `check --run-checks --strict` executes the required configured commands during that invocation, so a strict command gate does not trust a supplied JSON file. The pull request workflow publishes an informational summary; add runtime dependency setup before enabling live application checks in CI. Branch review rules enforce human approval. See [`docs/ARCHITECTURE_CONTINUITY.md`](docs/ARCHITECTURE_CONTINUITY.md).
+
+`upgrade --target <repo>` previews updates from a newer framework checkout. Add `--apply` to replace only managed files whose hashes still match the installed version. Project edits are preserved and reported as conflicts; `doctor` reports routing and managed-file drift. The installed runtime version and hashes live in `.spec/installation.json`.
 
 ---
 
@@ -106,19 +137,25 @@ Full detail in [`docs/ADOPTION.md`](docs/ADOPTION.md). A complete requirement fo
 | [`AGENTS.md`](AGENTS.md) | The operating contract. Short on purpose — it is paid for on every turn |
 | `CLAUDE.md`, `.github/copilot-instructions.md` | Thin host adapters pointing at the same contract |
 | `.agents/skills/` | Canonical skills: `orace-workshop`, `orace-adr`, `spec-bootstrap`, `spec-workflow`, `spec-review` |
+| `.agents/roles/` | Canonical supervisor, planner, specialist, security, and reviewer roles |
 | `.claude/skills` | Symlink to the canonical tree, with a copy fallback |
-| `.claude/agents/` | Ten compact role definitions, supervisor through reviewer |
+| `.claude/agents/` | Generated Claude role adapter |
 | `.claude/commands/` | Slash commands wrapping the skills |
+| `.codex/agents/` | Generated Codex role agents (`orace_*`), with no pinned model or permission overrides |
 | `.spec/INDEX.md` | The routing registry — the only way agents find anything |
 | `.spec/project.json` | Active playbooks, module roots, orchestration, context budget, checks |
 | `.spec/00_global/` | 15 policy packs: protocol, principles, governance, clean architecture, DDD, API, data modelling, OWASP security, AI governance, human-in-the-loop, UI, testing, observability, NFR, definition of done |
 | `.spec/10_playbooks/` | Technology packs: Python backend, React frontend, Kotlin native, Auth0 identity — plus any you add |
 | `.spec/15_architecture/` | This system's ORACE artifacts, including its technology profile (empty until the workshop runs) |
-| `.spec/20_backlog/TASKS.md` | The only task list |
+| `.spec/20_backlog/TASKS.md` | Canonical planned backlog; ad hoc tasks may start from a request |
 | `.spec/30_delivery/PROMOTION_LOG.md` | Evidence for every canonical change |
 | `.spec/40_workspace/<task-id>/` | Task context, proposals, handoffs, reviews |
 | `scripts/spec.py` | Validate, select, scaffold |
-| `docs/`, `examples/`, `tests/` | Adoption, extension, a worked example, and framework tests |
+| `scripts/orace.py` | Init, task, run, explain, coverage, impact, check, verify, review, doctor, upgrade |
+| `scripts/architecture.py`, `scripts/distribution.py`, `scripts/benchmark.py` | Architecture links, managed installation, and measurement |
+| `.github/workflows/orace-check.yml` | Informational architecture and routing summary for pull requests |
+| `benchmarks/` | Routing probes and instructions for recording real comparisons |
+| `docs/`, `examples/`, `tests/` | Adoption, integration guidance, a worked example, and framework tests |
 
 Every rule in every pack has a stable id — `SEC-03`, `CA-02`, `PY-08`, `KT-12` — so a handoff, a review finding, or a rejection can cite it and a human can look it up.
 
@@ -198,7 +235,7 @@ A **work package** is the unit of delegation: tasks sharing surfaces, playbooks,
 
 The supervisor hands over a brief with task ids, authorised paths, routing ids, acceptance criteria, and required checks — and no specification bodies. Packages dispatched in parallel must have **disjoint file ownership**; a package spanning three playbooks and every module is not a package, it is a plan that needs splitting. Sub-agents return a handoff and a short message, so the supervisor's context stays free for coordination.
 
-Then the last gate, and the one most frameworks omit. **Reviewer-Agent runs in a fresh context, did not write the code, and judges two things:**
+For Governed changes, the last gate is an independent reviewer. **Reviewer-Agent runs in a fresh context, did not write the code, and judges two things:**
 
 - **The work.** Is every acceptance criterion *covered* by evidence a sceptic would accept, *unproven*, or *contradicted*? A criterion saying "recovery completes in ≤ 30 s" is not covered by a unit test that mocks the recovery.
 - **The handoff documents themselves.** Vague evidence ("tests pass"), missing commands, unreported skips, silent deviations from the approved proposal, an empty residual-risk section on a non-trivial change, undocumented new configuration. Each becomes a required correction.
@@ -231,9 +268,11 @@ python3 scripts/sync_skills.py --check    # host adapters match the canonical sk
 python3 -m unittest discover -s tests -v  # framework test suite
 python3 scripts/spec.py playbooks         # what is registered, what is active
 python3 scripts/spec.py select --task PAY-014
+python3 scripts/orace.py doctor            # routing and managed-runtime diagnostics
+python3 scripts/benchmark.py run          # synthetic routing measurements
 ```
 
-Python 3.10+, standard library only. No virtualenv, no install step, nothing to run in CI beyond the three commands above — the workflow in `.github/workflows/validate.yml` runs exactly those.
+Python 3.10+, standard library only. No virtualenv or package installation is required for the framework CLI. `run` needs the executor command you choose, and application checks need that application's dependencies. The framework CI runs validation, skill sync, tests, and a pull request change summary. Installed projects receive a separate informational PR workflow; teams can opt into strict live command gating after configuring their roots, checks, and CI environment.
 
 `validate` fails on: an unregistered global policy, an unregistered playbook pack, an **unregistered architecture artifact**, a missing or cyclic dependency, an unknown surface or playbook, an unsafe path, a duplicate id, an active playbook with no routing row, a broken routing assertion, or a selection over its hard token budget.
 
@@ -241,11 +280,15 @@ Python 3.10+, standard library only. No virtualenv, no install step, nothing to 
 
 ## Honest limits
 
-The routing index is maintained by hand. It grows a row per ADR, and nothing detects an ADR that has quietly gone stale relative to the scenario it serves — `validate` checks that references and dependencies resolve, not that the content still agrees.
+The routing index is maintained by hand. It grows a row per ADR. `impact` and `validate` detect missing machine-readable scenario links and affected path gaps, but they cannot prove that an ADR's prose still agrees with a quality scenario. A reviewer must judge that relationship.
 
 Surface mapping is human judgement. Path and role matching are hints; they cannot infer every security implication, which is why the framework pushes you to attach `security` and `auth` deliberately rather than hope.
 
 The token figures above are `characters ÷ 4` estimates of what a compliant agent *should* load. They are not measured host traces, and the selector does not load anything into a context window — use them to compare task shapes and to catch a bad surface mapping, not as a benchmark.
+
+The benchmark harness ships synthetic routing probes and a format for recording real comparative runs. It does not claim productivity gains or measured comparisons with other coding methods until those runs are supplied.
+
+Saved evidence JSON is inspectable but can be edited; `check --strict` therefore requires live command execution for a check gate. A plan-bound approval record catches accidental plan mismatch but cannot establish the approver's identity. Independent review and host branch rules remain the acceptance and approval authority.
 
 And no framework can rescue a bad interview. If the `Measure` fields come back as "fast" and "reliable", routing them perfectly achieves nothing. `/orace-workshop` probes once for a number; it cannot supply one.
 

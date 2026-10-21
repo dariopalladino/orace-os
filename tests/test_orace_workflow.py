@@ -113,15 +113,13 @@ class SpecBootstrapTechnologyTests(unittest.TestCase):
 
 
 class InitializerGuidanceTests(unittest.TestCase):
-    def test_initializer_runs_workshop_before_bootstrap_configuration(self):
+    def test_initializer_offers_discovery_before_optional_workshop(self):
         with tempfile.TemporaryDirectory() as target, contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(init_project.main(["--target", target, "--dry-run"]), 0)
         guidance = output.getvalue()
-        workshop = guidance.index("Run /orace-workshop")
-        bootstrap = guidance.index("Run /spec-bootstrap")
-        review = guidance.index("Review the proposed .spec/project.json")
-        self.assertLess(workshop, bootstrap)
-        self.assertLess(bootstrap, review)
+        self.assertLess(guidance.index("scripts/orace.py discover"), guidance.index("Review .spec/project.json"))
+        self.assertIn("scripts/orace.py task", guidance)
+        self.assertIn("as architecture needs grow", guidance)
         self.assertIn("--rerun technology", guidance)
 
 

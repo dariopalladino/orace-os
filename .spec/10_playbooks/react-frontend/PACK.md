@@ -47,6 +47,7 @@ src/
 - **RX-13** Forms use a schema-validated form library, validating against the same contract shape the server enforces; server-side validation remains authoritative (`UI_CONVENTIONS.md` UI-04).
 - **RX-14** Tests use Testing Library and query by accessible role and name, never by class name or test-id-only. If a query needs a test id, that is usually an accessibility gap.
 - **RX-15** Components are not memoised by default. Add `memo`/`useMemo`/`useCallback` against a measured problem, and say what was measured.
+- **RX-16** public article content is present in initial HTML, every published article has a stable crawlable URL, sitemap contains all indexable canonical pages, robots.txt permits crawling of public content, nonexistent pages return 404, moved pages return 301, and indexable pages do not contain noindex.
 
 ## References — load only when the work needs them
 
@@ -54,6 +55,7 @@ src/
 |---|---|
 | `references/data-and-state.md` | adding queries/mutations, caching, optimistic updates, or forms |
 | `references/quality-and-performance.md` | accessibility work, bundle/render performance, or test setup |
+| `references/seo-directives.md` |   public blog pages, crawlability, search indexing, sitemap, robots |
 
 ## Checks
 

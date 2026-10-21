@@ -25,6 +25,8 @@ evolution/backlog.md        E — what to revisit when evidence fails
 
 Then run `/spec-bootstrap` to register these artifacts in `.spec/INDEX.md`, derive playbooks and checks from the technology profile, and derive the initial backlog. **Until they are registered, no agent will ever load them** — `scripts/spec.py validate` fails while any artifact here is unregistered, which is how the framework keeps that from happening quietly.
 
+Accepted ADRs should record `status`, `owner`, `affected_paths`, `scenarios_addressed`, and `supersedes` in frontmatter. `python3 scripts/orace.py impact --path <changed-path>` identifies decisions to review and reports broken scenario or supersession links. It does not rewrite accepted decisions.
+
 For an architecture created before `approaches.md` and `technology-profile.md` existed, rerun the workshop at this path. Resume detection preserves complete phases and fills the missing Phase A outputs. Later, `/orace-workshop .spec/15_architecture --rerun technology` refreshes only the technology baseline, cross-checks the views, and reports downstream impact before anything else changes.
 
 This folder is canonical: specialists propose changes in their workspace, the supervisor promotes. See `.spec/00_global/GOVERNANCE.md`.

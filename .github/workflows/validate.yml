@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -18,3 +20,6 @@ jobs:
         run: python3 scripts/sync_skills.py --check
       - name: Tests
         run: python3 -m unittest discover -s tests -v
+      - name: Pull request architecture summary
+        if: github.event_name == 'pull_request'
+        run: python3 scripts/orace.py check --diff "origin/${{ github.base_ref }}...HEAD" --github

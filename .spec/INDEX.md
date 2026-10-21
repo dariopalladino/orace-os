@@ -4,6 +4,8 @@ The single routing registry. Every agent selects documents through this table an
 
 Paths are repository-relative. `*` in Surfaces means baseline (always selected). `*` in Playbooks means any project. Commas mean union; `-` means no dependencies.
 
+`project.json` `module_roots` are directory prefixes ending in `/`. A `*` segment matches exactly one directory; `**` matches zero or more directories. For example, `services/*/migrations/` matches `services/payments/migrations/001.py` but not a deeper `services/payments/src/migrations/001.py`. Candidate source paths may use `/` or `\`; configured roots use `/`. A path outside all roots requires explicit semantic classification.
+
 ## How to select
 
 1. Read `.spec/project.json` for active playbooks and module roots.

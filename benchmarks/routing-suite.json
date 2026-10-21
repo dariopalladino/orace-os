@@ -1,0 +1,36 @@
+{
+  "cases": [
+    {
+      "id": "frontend-margin",
+      "description": "Fix CSS margin on the submit button",
+      "paths": ["web/src/SubmitButton.tsx"],
+      "expected_mode": "lite",
+      "required_specs": ["ui", "testing", "play-react"],
+      "irrelevant_specs": ["play-kotlin", "play-python", "data-modelling"]
+    },
+    {
+      "id": "api-feature",
+      "description": "Add a reporting API endpoint",
+      "paths": ["api/reporting/export.py"],
+      "expected_mode": "standard",
+      "required_specs": ["api-design", "security", "play-python"],
+      "irrelevant_specs": ["play-react", "play-kotlin"]
+    },
+    {
+      "id": "auth-change",
+      "description": "Change password reset token validation",
+      "paths": ["web/src/auth/ResetForm.tsx"],
+      "expected_mode": "governed",
+      "required_specs": ["security", "play-auth0", "play-react"],
+      "irrelevant_specs": ["play-kotlin", "play-python"]
+    },
+    {
+      "id": "service-migration",
+      "description": "Add payment schema migration",
+      "paths": ["services/payments/migrations/001_add_receipt.py"],
+      "expected_mode": "governed",
+      "required_specs": ["data-modelling", "ddd", "governance", "play-python"],
+      "irrelevant_specs": ["play-react", "play-kotlin"]
+    }
+  ]
+}

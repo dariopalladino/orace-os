@@ -1,12 +1,14 @@
 # Example prompts
 
+These prompts work across hosts. In Codex, prefix a skill name with `$` to invoke it explicitly (for example, `$orace-workshop`); in Claude Code, use its `/` command.
+
 ## Start a new system
 
-> Run `/orace-workshop .spec/15_architecture` with me. I want the architecture documented before we write any code.
+> Use the orace-workshop skill with `.spec/15_architecture`. I want the architecture documented before we write any code.
 
 Then:
 
-> Run `/spec-bootstrap`. Register the architecture in the routing index, propose playbooks and exact validation checks from the technology profile, cross-check the module and deployment views, and derive the initial backlog from scenarios, ADRs, and unresolved technology work. Show me the proposal before writing anything canonical.
+> Use the spec-bootstrap skill. Register the architecture in the routing index, propose playbooks and exact validation checks from the technology profile, cross-check the module and deployment views, and derive the initial backlog from scenarios, ADRs, and unresolved technology work. Show me the proposal before writing anything canonical.
 
 ## Adopt SDDF into an existing repository
 
@@ -14,7 +16,7 @@ Then:
 
 ## Refresh technology choices in an existing architecture
 
-> Run `/orace-workshop .spec/15_architecture --rerun technology`. Preserve the other phases and accepted ADRs, confirm observed technologies with me, and report affected views, routing rows, and tasks before proposing any downstream update.
+> Use the orace-workshop skill with `.spec/15_architecture --rerun technology`. Preserve the other phases and accepted ADRs, confirm observed technologies with me, and report affected views, routing rows, and tasks before proposing any downstream update.
 
 ## Implement a task
 
@@ -30,7 +32,7 @@ Then:
 
 ## Review before close
 
-> Run `/spec-review PAY-014`. Judge whether every acceptance criterion is actually evidenced and whether the handoff documents need correction. Give me a verdict and the required actions.
+> Use the spec-review skill for PAY-014. Judge whether every acceptance criterion is actually evidenced and whether the handoff documents need correction. Give me a verdict and the required actions.
 
 ## Resume after a break
 

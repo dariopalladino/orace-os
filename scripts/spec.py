@@ -76,6 +76,41 @@ def safe_path(root: Path, value: str) -> Path:
     return resolved
 
 
+def path_parts(value: str) -> tuple[str, ...]:
+    """Normalise a proposed source path without requiring the file to exist."""
+    if not isinstance(value, str) or not value.strip() or "\x00" in value:
+        raise SpecError(f"Expected a repository-relative source path: {value!r}")
+    normalised = value.strip().replace("\\", "/")
+    if normalised.startswith("/") or re.match(r"^[A-Za-z]:", normalised):
+        raise SpecError(f"Expected a repository-relative source path: {value!r}")
+    parts = tuple(part for part in normalised.split("/") if part not in {"", "."})
+    if not parts or ".." in parts or any(":" in part for part in parts):
+        raise SpecError(f"Unsafe repository-relative source path: {value!r}")
+    return parts
+
+
+def root_parts(value: str) -> tuple[str, ...]:
+    """Module roots are directory prefixes; '*' is one segment, '**' is any depth."""
+    if not isinstance(value, str) or not value.endswith("/") or "\\" in value:
+        raise SpecError(f"module root must be a portable directory prefix ending in '/': {value!r}")
+    parts = path_parts(value)
+    if any(("*" in part or "?" in part or "[" in part or "]" in part)
+           and part not in {"*", "**"} for part in parts):
+        raise SpecError(f"module root has unsupported glob segment: {value!r}")
+    return parts
+
+
+def root_matches(pattern: tuple[str, ...], path: tuple[str, ...]) -> bool:
+    """Match a globbed directory root against a path or any of its ancestors."""
+    def match(i: int, j: int) -> bool:
+        if i == len(pattern):
+            return True
+        if pattern[i] == "**":
+            return match(i + 1, j) or (j < len(path) and match(i, j + 1))
+        return j < len(path) and (pattern[i] == "*" or pattern[i] == path[j]) and match(i + 1, j + 1)
+    return match(0, 0)
+
+
 def cells(line: str) -> list[str]:
     return [part.strip().strip("`") for part in line.strip().strip("|").split("|")]
 
@@ -217,7 +252,7 @@ def load_project(root: Path, specs: dict[str, Spec], catalog: dict[str, Path]) -
         if not isinstance(paths, list) or not all(isinstance(item, str) for item in paths):
             raise SpecError(f"project.json module_roots[{surface!r}] must be a list of paths")
         for item in paths:
-            safe_path(root, item)
+            root_parts(item)
 
     architecture_root = config.get("architecture_root", ".spec/15_architecture")
     safe_path(root, architecture_root)
@@ -251,11 +286,10 @@ def load_project(root: Path, specs: dict[str, Spec], catalog: dict[str, Path]) -
 
 def surfaces_for_path(config: dict, value: str) -> set[str]:
     found = set()
-    normalised = value.strip().lstrip("./")
+    candidate = path_parts(value)
     for surface, roots in config["module_roots"].items():
         for prefix in roots:
-            clean = prefix.strip().lstrip("./").rstrip("/")
-            if clean and (normalised == clean or normalised.startswith(clean + "/")):
+            if root_matches(root_parts(prefix), candidate):
                 found.add(surface)
     return found
 
@@ -308,7 +342,7 @@ def select(
         raise SpecError(f"Unknown surfaces {sorted(unknown)}; resolve before execution")
     for value in paths:
         derived = surfaces_for_path(config, value)
-        if not derived:
+        if not derived and not surfaces:
             raise SpecError(
                 f"Path {value!r} matches no module root; add it to project.json module_roots "
                 "or pass explicit --surface values"
@@ -410,10 +444,11 @@ def check_routing_cases(root: Path, specs: dict[str, Spec], config: dict) -> lis
     for case in cases.get("cases", []):
         name = case.get("name", "<unnamed>")
         playbooks = frozenset(case.get("playbooks", config["playbooks"]))
+        case_config = {**config, "module_roots": case.get("module_roots", config["module_roots"])}
         try:
             reasons = select(
                 specs,
-                config,
+                case_config,
                 set(case.get("surfaces", [])),
                 list(case.get("paths", [])),
                 list(case.get("specs", [])),
@@ -446,6 +481,10 @@ def command_validate(root: Path) -> int:
     specs = load_registry(root, catalog)
     config = load_project(root, specs, catalog)
     problems = check_coverage(root, specs, config, catalog) + check_routing_cases(root, specs, config)
+    import architecture
+    drift = architecture.impact(root, specs, config, [], set())["findings"]
+    problems += [f"Architecture link: {item['id']}: {item['detail']}" for item in drift
+                 if item["kind"] in {"scenario_link_missing", "superseded_adr_missing"}]
     if problems:
         for problem in problems:
             print(f"error: {problem}", file=sys.stderr)

@@ -19,7 +19,7 @@ id: done
 | DOD-09 | Observability in place | Metric, log, and trace names as specified in the evidence plan |
 | DOD-10 | Specifications current | Affected specs updated by promotion, or confirmed unaffected |
 | DOD-11 | No new dead code or blocking TODOs | Grep result or reviewer confirmation |
-| DOD-12 | Handoff complete and reviewed | `HANDOFF.md` plus `REVIEW_REPORT.md` verdict `accept` |
+| DOD-12 | Evidence reported at the required level | Lite: compact result; Standard: concise handoff and review; Governed: `HANDOFF.md` plus independent `REVIEW_REPORT.md` verdict `accept` |
 
 ## Rules
 

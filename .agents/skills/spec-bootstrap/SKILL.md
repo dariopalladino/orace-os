@@ -84,6 +84,7 @@ Defaults, to be adjusted against what the artifacts actually say:
 Three of these carry most of the value:
 
 - **`quality-scenarios` is deliberately wide.** The scenarios are what the system must prove it can do, and almost any change can violate one. It depends on `nonfunctional` so the generic defaults and the governing numbers always arrive together — and the agent can see which one displaces which.
+- **ADR continuity metadata.** For each accepted ADR, confirm `status`, `owner`, `affected_paths`, `scenarios_addressed`, and `supersedes` in its frontmatter. Missing fields stay explicit; do not invent an owner or a path. `orace.py impact` uses these fields to propose affected decisions during later changes.
 - **`view-deployment` carries `security` and `auth`.** It holds trust zones, data residency, and the AI capability boundary. That mapping is what makes a frontend task touching token storage pull in the trust-zone document. It prevents a recurring and expensive class of mistake.
 - **One row per ADR, never one row for the folder.** A folder row means that at fifteen ADRs every task drags in every decision ever made, which converts selective loading back into read-everything. Give each ADR only the surfaces its decision constrains: an audit-log persistence decision is `data`, not `data,backend`.
 

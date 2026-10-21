@@ -111,6 +111,33 @@ class SelectionTests(TempRepo):
         with self.assertRaises(spec.SpecError):
             self.select(paths=["unmapped/file.ts"])
 
+    def test_unmapped_path_requires_explicit_semantic_classification(self):
+        chosen = self.select(surfaces=["security"], paths=["unmapped/token.ts"])
+        self.assertIn("security", chosen)
+
+    def test_segment_glob_does_not_cross_directories(self):
+        _, config, _ = self.load()
+        config["module_roots"]["data"] = ["services/*/migrations/"]
+        self.assertIn("data", spec.surfaces_for_path(config, "services/payments/migrations/001.py"))
+        self.assertNotIn("data", spec.surfaces_for_path(config, "services/payments/src/migrations/001.py"))
+
+    def test_double_star_matches_nested_directories(self):
+        _, config, _ = self.load()
+        config["module_roots"]["data"] = ["services/**/migrations/"]
+        self.assertIn("data", spec.surfaces_for_path(config, "services/payments/src/migrations/001.py"))
+        self.assertIn("data", spec.surfaces_for_path(config, "services/migrations/001.py"))
+
+    def test_nested_roots_and_windows_separators(self):
+        _, config, _ = self.load()
+        self.assertEqual(spec.surfaces_for_path(config, r"web\src\auth\token.ts"), {"frontend", "auth"})
+        self.assertEqual(spec.surfaces_for_path(config, "webish/src/auth/token.ts"), set())
+
+    def test_unsafe_candidate_path_rejected(self):
+        _, config, _ = self.load()
+        for value in ("../web/src/a.ts", "/web/src/a.ts", r"C:\web\src\a.ts"):
+            with self.subTest(value=value), self.assertRaises(spec.SpecError):
+                spec.surfaces_for_path(config, value)
+
     def test_explicit_reference_to_inactive_playbook_raises(self):
         """An incompatible explicit reference is a decision, never a silent omission."""
         with self.assertRaises(spec.SpecError) as ctx:
@@ -123,6 +150,11 @@ class SelectionTests(TempRepo):
 
 
 class RegistryTests(TempRepo):
+    def test_invalid_module_root_glob_rejected(self):
+        build(self.dir, ["| a | .spec/00_global/A.md | docs | - | * |"],
+              globals_={"A.md": "a"}, config={"module_roots": {"data": ["services/pay*/migrations/"]}})
+        with self.assertRaises(spec.SpecError):
+            self.load()
     def test_missing_dependency_raises(self):
         build(self.dir, ["| a | .spec/00_global/A.md | docs | ghost | * |"], globals_={"A.md": "a"})
         with self.assertRaises(spec.SpecError):

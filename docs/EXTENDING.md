@@ -55,7 +55,7 @@ If it genuinely is global policy, add the file, register it, give its rules an i
 
 ## Add an agent role
 
-Drop a definition in `.claude/agents/`. Keep it to what the role **owns**, what it **must not** do, and which surfaces it selects. Do not restate policy in a role definition — the role routes to the policy, which is the whole point of the index. Roles are hints for dispatch; they never exclude a requirement.
+Drop a definition in `.agents/roles/` with YAML `name` and `description` frontmatter. Keep it to what the role **owns**, what it **must not** do, and which surfaces it selects. Do not restate policy in a role definition — the role routes to the policy, which is the whole point of the index. Roles are hints for dispatch; they never exclude a requirement. Run `python3 scripts/sync_skills.py` to generate `.claude/agents/` and `.codex/agents/` adapters; do not edit those generated files directly.
 
 ## Add a skill
 

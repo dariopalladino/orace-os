@@ -30,6 +30,7 @@ Ask **one question at a time** and wait for each answer. Do not batch.
 5. "What did you decide — and what did you explicitly decide **not** to do?"
 6. "What are the consequences? What becomes easier, what becomes harder, and what risk are you now accepting?"
 7. "Status: Proposed or Accepted? And who owns the accepted risk?"
+8. "Which repository paths or component roots does this decision govern? Name directory prefixes ending in `/`, or exact files; use `*` for one directory and `**` for any depth."
 
 If an answer is vague ("the backend team", "it should be fast"), reflect it back once and ask for the specific name or number. If the architect says they will fill something in later, record `[TBD — owner: <name>]` and continue.
 
@@ -43,6 +44,9 @@ orace_phase: A
 generated_by: orace-adr
 generated_at: YYYY-MM-DD
 status: [Proposed | Accepted | Deprecated | Superseded]
+owner: [person or accountable role]
+affected_paths:
+  - [repository-relative directory prefix or exact file]
 scenarios_addressed:
   - QA-XXXX-NN
 supersedes: [ADR-NNN or none]
