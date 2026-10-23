@@ -18,6 +18,7 @@ import spec
 import init_project
 import architecture
 import distribution
+import model_config
 
 LEVELS = ("lite", "standard", "governed")
 SENSITIVE = {"auth", "security", "data", "architecture", "governance", "infra", "hitl"}
@@ -822,6 +823,13 @@ def main(argv: list[str] | None = None) -> int:
     initializer.add_argument("--target", required=True)
     initializer.add_argument("--dry-run", action="store_true")
     initializer.add_argument("--force", action="store_true")
+    initializer.add_argument("--harness", choices=model_config.HOSTS)
+    initializer.add_argument("--workshop-model", default="auto")
+    initializer.add_argument("--supervisor-model", default="auto")
+    initializer.add_argument("--subagent-model", default="auto")
+    launcher = sub.add_parser("launch", help="Start a harness with the configured workshop or supervisor model")
+    launcher.add_argument("--harness", required=True, choices=model_config.HOSTS)
+    launcher.add_argument("--role", required=True, choices=("workshop", "supervisor"))
     discovery = sub.add_parser("discover", help="Inspect a repository without approving inferred architecture")
     discovery.add_argument("--target", default=".")
     discovery.add_argument("--json", action="store_true")
@@ -922,6 +930,12 @@ def main(argv: list[str] | None = None) -> int:
                     install_args.append("--dry-run")
                 if args.force:
                     install_args.append("--force")
+                if args.harness:
+                    install_args.extend(["--harness", args.harness])
+                for flag, value in (("--workshop-model", args.workshop_model),
+                                    ("--supervisor-model", args.supervisor_model),
+                                    ("--subagent-model", args.subagent_model)):
+                    install_args.extend([flag, value])
                 result = init_project.main(install_args)
                 if result:
                     return result
@@ -941,6 +955,19 @@ def main(argv: list[str] | None = None) -> int:
                 print(profile["note"])
             return 0
         root = spec.repo_root(Path(args.root))
+        if args.command == "launch":
+            try:
+                model = model_config.load(root)[args.harness][args.role]
+            except ValueError as error:
+                raise spec.SpecError(str(error)) from error
+            command = [args.harness]
+            if model != "auto":
+                command.extend(["--model", model])
+            print("Starting " + " ".join(shlex.quote(part) for part in command), flush=True)
+            try:
+                return subprocess.call(command, cwd=root)
+            except FileNotFoundError:
+                raise spec.SpecError(f"{args.harness} CLI is not installed or not on PATH")
         if args.command == "run":
             if args.timeout <= 0 or args.max_output <= 0:
                 raise spec.SpecError("--timeout and --max-output must be positive")
@@ -985,8 +1012,15 @@ def main(argv: list[str] | None = None) -> int:
                 manifest = None
             drift = []
             if manifest:
+                import sync_skills
+                generated_roles = sync_skills.role_adapters(root, config["models"])
                 for path, expected in manifest["managed"].items():
                     target = spec.safe_path(root, path)
+                    relative = Path(path)
+                    if relative in generated_roles:
+                        if not target.is_file() or target.read_bytes() != generated_roles[relative]:
+                            drift.append(path)
+                        continue
                     if not target.is_file() or distribution.digest(target) != expected:
                         drift.append(path)
             report = {"framework_version": manifest.get("framework_version") if manifest else None,

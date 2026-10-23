@@ -3,7 +3,7 @@
 
 `.agents/skills/` is the single source of truth. Claude Code discovers skills in
 `.claude/skills/`; Codex discovers them in place. Role definitions live in
-`.agents/roles/` and are rendered for Claude Code and Codex.
+`.agents/roles/` and are rendered for Claude Code, Codex, and Copilot.
 
     python3 scripts/sync_skills.py          # create or refresh the adapter
     python3 scripts/sync_skills.py --check  # fail if the adapter has drifted
@@ -18,17 +18,20 @@ import os
 import shutil
 import sys
 from pathlib import Path
+import model_config
 
 CANONICAL = Path(".agents/skills")
 ADAPTERS = [Path(".claude/skills")]
 ROLES = Path(".agents/roles")
 CLAUDE_ROLES = Path(".claude/agents")
 CODEX_ROLES = Path(".codex/agents")
+COPILOT_ROLES = Path(".github/agents")
 
 
-def role_adapters(root: Path) -> dict[Path, bytes]:
-    """Render both hosts from one role source, without host-specific model pins."""
+def role_adapters(root: Path, models: dict | None = None) -> dict[Path, bytes]:
+    """Render role definitions with optional host-specific model choices."""
     rendered = {}
+    models = model_config.validate(models) if models is not None else model_config.load(root)
     sources = sorted((root / ROLES).glob("*.md"))
     if not sources:
         raise ValueError(f"no role definitions found in {ROLES}")
@@ -40,12 +43,22 @@ def role_adapters(root: Path) -> dict[Path, bytes]:
         fields = dict(line.split(":", 1) for line in header.strip().splitlines() if ":" in line)
         if not fields.get("name") or not fields.get("description") or not body.strip():
             raise ValueError(f"incomplete role: {source}")
-        rendered[CLAUDE_ROLES / source.name] = source.read_bytes()
+        claude_model = model_config.for_role(models, "claude", source.stem)
+        claude_header = header.rstrip() + (f"\nmodel: {json.dumps(claude_model)}\n" if claude_model != "auto" else "\n")
+        rendered[CLAUDE_ROLES / source.name] = ("---" + claude_header + "---" + body).encode("utf-8")
         name = "orace_" + source.stem.lower()
+        codex_model = model_config.for_role(models, "codex", source.stem)
         toml = (f"name = {json.dumps(name)}\n"
                 f"description = {json.dumps(fields['description'].strip())}\n"
-                f"developer_instructions = {json.dumps(body.strip())}\n")
+                f"developer_instructions = {json.dumps(body.strip())}\n"
+                + (f"model = {json.dumps(codex_model)}\n" if codex_model != "auto" else ""))
         rendered[CODEX_ROLES / f"{name}.toml"] = toml.encode("utf-8")
+        copilot_model = model_config.for_role(models, "copilot", source.stem)
+        copilot_header = (f"---\nname: {name}\n"
+                          f"description: {json.dumps(fields['description'].strip())}\n"
+                          + (f"model: {json.dumps(copilot_model)}\n" if copilot_model != "auto" else "")
+                          + "---")
+        rendered[COPILOT_ROLES / f"{name}.agent.md"] = (copilot_header + body).encode("utf-8")
     return rendered
 
 

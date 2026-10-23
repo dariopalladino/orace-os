@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 import distribution
+import model_config
 
 MERGE_FILES = ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md"]
 EXTRAS = ["PROMPT.md", "docs/ADOPTION.md", "docs/CODEX.md", "docs/EXTENDING.md"]
@@ -99,7 +100,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--target", required=True, help="Repository to install into")
     parser.add_argument("--force", action="store_true", help="Deprecated; existing installations use upgrade")
     parser.add_argument("--dry-run", action="store_true", help="Print what would happen and change nothing")
+    parser.add_argument("--harness", choices=model_config.HOSTS,
+                        help="Harness whose model ids the choices below apply to")
+    parser.add_argument("--workshop-model", default="auto")
+    parser.add_argument("--supervisor-model", default="auto")
+    parser.add_argument("--subagent-model", default="auto")
     args = parser.parse_args(argv)
+    chosen = {"workshop": args.workshop_model, "supervisor": args.supervisor_model,
+              "subagents": args.subagent_model}
+    if any(value != "auto" for value in chosen.values()) and not args.harness:
+        parser.error("explicit model ids require --harness claude|codex|copilot")
+    try:
+        model_config.validate({args.harness: chosen} if args.harness else None)
+    except ValueError as error:
+        parser.error(str(error))
 
     source_root = Path(__file__).resolve().parent.parent
     target_root = Path(args.target).expanduser().resolve()
@@ -137,8 +151,23 @@ def main(argv: list[str] | None = None) -> int:
             "python3 scripts/spec.py validate",
             "python3 scripts/sync_skills.py --check",
         ]
+        config["models"] = model_config.defaults()
+        if args.harness:
+            config["models"][args.harness] = chosen
         project.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
         log.append("initialized .spec/project.json with no unconfirmed active playbooks or module roots")
+    elif args.harness and not args.dry_run:
+        project = target_root / ".spec" / "project.json"
+        if not project.is_file():
+            raise SystemExit("error: existing .spec/ has no project.json")
+        config = json.loads(project.read_text(encoding="utf-8"))
+        models = model_config.validate(config.get("models"))
+        models[args.harness] = chosen
+        config["models"] = models
+        project.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+        log.append(f"configured {args.harness} model choices in .spec/project.json")
+    if args.harness:
+        log.append(f"model choices for {args.harness}: " + ", ".join(f"{k}={v}" for k, v in chosen.items()))
 
     log.extend(distribution.install(source_root, target_root, fresh_spec=fresh_spec,
                                     dry_run=args.dry_run))

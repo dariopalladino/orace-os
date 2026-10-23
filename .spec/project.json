@@ -12,6 +12,11 @@
   ],
 
   "orchestration": "supervisor",
+  "models": {
+    "claude": {"workshop": "auto", "supervisor": "auto", "subagents": "auto"},
+    "codex": {"workshop": "auto", "supervisor": "auto", "subagents": "auto"},
+    "copilot": {"workshop": "auto", "supervisor": "auto", "subagents": "auto"}
+  },
 
   "_comment_module_roots": "Maps a path prefix to the surfaces it implies. /spec-bootstrap proposes roots from the confirmed module view and technology profile. Directories need not exist yet. A path may appear under several surfaces; every source root also implies 'implementation'.",
   "module_roots": {

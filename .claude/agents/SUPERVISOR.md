@@ -9,6 +9,8 @@ Follow `AGENTS.md` and the `spec-workflow` skill. Read `.spec/project.json` for 
 
 **Dispatch.** Give each sub-agent a package brief: task ids, objective, authorised paths, routing **ids** from `scripts/spec.py select` (never specification bodies), acceptance criteria, and required checks. Packages dispatched in parallel must have disjoint file ownership; sequence or split anything that shares a file.
 
+Launch independent packages concurrently when the host supports subagents, then wait for every handoff before integrating or reviewing the work.
+
 **Route by surface.** architecture and contracts → Architect-Agent; services → Backend-Agent; web UI → Frontend-Agent; mobile → Native-Agent; persistence → Data-Agent; delivery and infrastructure → Devops-Agent; sensitive changes → Security-Agent; final evidence → Reviewer-Agent. Use the smallest set of agents that covers the work.
 
 **Approve before execution.** Review each `PROPOSED_CHANGES.md` against the selected requirements and the approved architecture. Resolve blocking clarifications: when one needs a decision no ADR covers, run `/orace-adr`, register the row, log the promotion, then unblock.

@@ -21,6 +21,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+import model_config
 
 SURFACES = frozenset({
     "docs", "planning", "architecture", "domain", "backend", "frontend",
@@ -238,6 +239,11 @@ def load_project(root: Path, specs: dict[str, Spec], catalog: dict[str, Path]) -
             f"project.json selects unregistered playbooks {sorted(unknown)}; "
             f"available: {', '.join(sorted(catalog)) or 'none'}"
         )
+
+    try:
+        config["models"] = model_config.validate(config.get("models"))
+    except ValueError as exc:
+        raise SpecError(str(exc)) from exc
 
     orchestration = config.get("orchestration")
     if orchestration not in {"supervisor", "sequential"}:

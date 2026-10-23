@@ -28,7 +28,8 @@ class DistributionTests(unittest.TestCase):
         (self.source / "VERSION").write_text("0.1.0\n", encoding="utf-8")
         (self.source / "scripts" / "runtime.py").write_text("v1\n", encoding="utf-8")
         (self.source / ".agents" / "skills" / "sample" / "SKILL.md").write_text("skill\n", encoding="utf-8")
-        (self.source / ".agents" / "roles" / "SAMPLE.md").write_text("role\n", encoding="utf-8")
+        (self.source / ".agents" / "roles" / "SAMPLE.md").write_text(
+            "---\nname: Sample\ndescription: Sample role.\n---\n\nFollow AGENTS.md.\n", encoding="utf-8")
         (self.source / ".codex" / "agents" / "orace_sample.toml").write_text('name = "orace_sample"\n', encoding="utf-8")
 
     def test_upgrade_preserves_modified_files_and_previews_changes(self):

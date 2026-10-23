@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
@@ -345,9 +346,12 @@ class OnboardingTests(unittest.TestCase):
                                   .read_text(encoding="utf-8"))
             self.assertEqual(config["playbooks"], [])
             self.assertEqual(config["module_roots"], {})
+            self.assertEqual(config["models"]["codex"],
+                             {"workshop": "auto", "supervisor": "auto", "subagents": "auto"})
             self.assertIn("react-frontend", proposal["proposed_playbooks"])
             self.assertIn("# Existing conventions", (target / "AGENTS.md").read_text(encoding="utf-8"))
             self.assertTrue((target / "docs" / "CODEX.md").is_file())
+            self.assertTrue((target / "docs" / "CONTEXT_MANAGEMENT.md").is_file())
             self.assertTrue((target / ".agents" / "roles" / "REVIEWER.md").is_file())
             self.assertTrue((target / ".codex" / "agents" / "orace_reviewer.toml").is_file())
             self.assertFalse((target / "tests").exists())
@@ -373,6 +377,37 @@ class OnboardingTests(unittest.TestCase):
             (target / "scripts" / "orace.py").write_text("# locally edited\n", encoding="utf-8")
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(orace.main(["--root", str(target), "doctor", "--json"]), 1)
+
+    def test_init_renders_host_models_and_launch_uses_main_role_choice(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(orace.main([
+                    "init", "--target", str(target), "--harness", "codex",
+                    "--workshop-model", "gpt-workshop", "--supervisor-model", "gpt-supervisor",
+                    "--subagent-model", "gpt-worker"]), 0)
+            config = json.loads((target / ".spec/project.json").read_text())
+            self.assertEqual(config["models"]["codex"]["workshop"], "gpt-workshop")
+            self.assertEqual(config["models"]["claude"]["workshop"], "auto")
+            self.assertIn('model = "gpt-worker"',
+                          (target / ".codex/agents/orace_planner.toml").read_text())
+            self.assertIn('model = "gpt-supervisor"',
+                          (target / ".codex/agents/orace_supervisor.toml").read_text())
+            self.assertNotIn("model:",
+                             (target / ".github/agents/orace_planner.agent.md").read_text())
+            with mock.patch.object(orace.subprocess, "call", return_value=0) as run:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(orace.main(["--root", str(target), "launch",
+                                                 "--harness", "codex", "--role", "workshop"]), 0)
+                run.assert_called_once_with(["codex", "--model", "gpt-workshop"], cwd=target.resolve())
+            config["models"]["codex"]["subagents"] = "gpt-worker-v2"
+            (target / ".spec/project.json").write_text(json.dumps(config), encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(orace.distribution.sync_skills.sync(target.resolve()), 0)
+                self.assertEqual(orace.main(["--root", str(target), "doctor", "--json"]), 0)
+            preview = orace.distribution.upgrade(Path(__file__).resolve().parent.parent,
+                                                 target.resolve(), dry_run=True)
+            self.assertNotIn(".codex/agents/orace_planner.toml", preview["conflicts"])
 
 
 if __name__ == "__main__":

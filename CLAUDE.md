@@ -16,4 +16,4 @@ Entry points:
 
 Route ad hoc requests with `python3 scripts/orace.py task "<request>" --path <path>` or registered tasks with `python3 scripts/spec.py select --task <id>`. Confirm inferred surfaces and the minimum Lite, Standard, or Governed mode from the actual change. The canonical planned backlog is `.spec/20_backlog/TASKS.md`; ad hoc work need not be added first. Load complete applicable documents plus their dependencies, and reuse them while scope and context remain valid.
 
-Agent role definitions are in `.claude/agents/`. In supervisor orchestration, dispatch one sub-agent per work package with routing ids rather than specification text.
+Agent role definitions are in `.claude/agents/`. In supervisor orchestration, dispatch one sub-agent per work package with routing ids rather than specification text. Use `/compact` after a stable checkpoint in a long task and `/clear` for a new task; see `docs/CONTEXT_MANAGEMENT.md`.

@@ -15,13 +15,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import init_project  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
-WORKSHOP = (REPO / ".agents" / "skills" / "orace-workshop" / "SKILL.md").read_text(encoding="utf-8")
-BOOTSTRAP = (REPO / ".agents" / "skills" / "spec-bootstrap" / "SKILL.md").read_text(encoding="utf-8")
+WORKSHOP_ROOT = REPO / ".agents" / "skills" / "orace-workshop"
+WORKSHOP_ENTRY = (WORKSHOP_ROOT / "SKILL.md").read_text(encoding="utf-8")
+WORKSHOP = WORKSHOP_ENTRY + "\n" + "\n".join(
+    path.read_text(encoding="utf-8") for path in sorted((WORKSHOP_ROOT / "references").glob("*.md"))
+)
+BOOTSTRAP_ROOT = REPO / ".agents" / "skills" / "spec-bootstrap"
+BOOTSTRAP_ENTRY = (BOOTSTRAP_ROOT / "SKILL.md").read_text(encoding="utf-8")
+BOOTSTRAP = BOOTSTRAP_ENTRY + "\n" + "\n".join(
+    path.read_text(encoding="utf-8") for path in sorted((BOOTSTRAP_ROOT / "references").glob("*.md"))
+)
 ADOPTION = (REPO / "docs" / "ADOPTION.md").read_text(encoding="utf-8")
 README = (REPO / "README.md").read_text(encoding="utf-8")
 
 
 class OraceWorkshopTechnologyTests(unittest.TestCase):
+    def test_workshop_loads_one_phase_at_a_time(self):
+        self.assertLess(len(WORKSHOP_ENTRY), 7000)
+        self.assertIn("Read only the reference for the active phase", WORKSHOP_ENTRY)
+        for phase in "orace":
+            self.assertTrue((WORKSHOP_ROOT / "references" / f"phase-{phase}.md").is_file())
+
     def test_resume_requires_persisted_approaches_and_technology_profile(self):
         self.assertIn("approaches.md + technology-profile.md", WORKSHOP)
         self.assertIn("A is done when `approaches.md` and `technology-profile.md` exist", WORKSHOP)
@@ -92,6 +106,10 @@ class OraceWorkshopUsageTests(unittest.TestCase):
 
 
 class SpecBootstrapTechnologyTests(unittest.TestCase):
+    def test_bootstrap_loads_one_step_at_a_time(self):
+        self.assertLess(len(BOOTSTRAP_ENTRY), 5000)
+        self.assertIn("load only the next step reference", BOOTSTRAP_ENTRY)
+
     def test_bootstrap_uses_profile_for_playbooks_roots_and_checks(self):
         self.assertIn("Use `technology-profile.md` as the primary source", BOOTSTRAP)
         self.assertIn("module/deployment views plus accepted ADRs as cross-checks", BOOTSTRAP)

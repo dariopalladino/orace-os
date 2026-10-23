@@ -6,20 +6,34 @@ import hashlib
 import json
 import shutil
 from pathlib import Path
+import model_config
+import sync_skills
 
 MANIFEST = Path(".spec/installation.json")
 MANAGED_DIRS = (
     Path("scripts"), Path(".agents/skills"), Path(".agents/roles"),
     Path(".claude/agents"), Path(".codex/agents"),
+    Path(".github/agents"),
     Path(".claude/commands"), Path(".spec/00_global"), Path(".spec/10_playbooks"),
     Path("benchmarks"),
 )
-MANAGED_FILES = (Path("VERSION"), Path(".spec/INDEX.md"), Path(".github/workflows/orace-check.yml"))
+MANAGED_FILES = (Path("VERSION"), Path(".spec/INDEX.md"),
+                 Path(".github/workflows/orace-check.yml"), Path("docs/CONTEXT_MANAGEMENT.md"))
 SKIP_PARTS = {"__pycache__", ".DS_Store", ".pytest_cache"}
 
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def digest_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def desired_content(source: Path, relative: Path, roles: dict[Path, bytes]) -> bytes:
+    if relative in roles:
+        return roles[relative]
+    return (source / relative).read_bytes()
 
 
 def source_files(source: Path) -> list[Path]:
@@ -84,11 +98,12 @@ def install(source: Path, target: Path, *, fresh_spec: bool, dry_run: bool) -> l
     actions = []
     old = read_manifest(target) if not dry_run else None
     managed = dict(old["managed"]) if old else {}
+    roles = sync_skills.role_adapters(source, model_config.load(target))
     for relative in source_files(source):
         if relative.parts[0] == ".spec" and not fresh_spec:
             continue
         destination = target / relative
-        origin = source / relative
+        content = desired_content(source, relative, roles)
         if destination.is_file():
             if fresh_spec and relative.parts[0] == ".spec":
                 managed[relative.as_posix()] = digest(destination)
@@ -98,8 +113,8 @@ def install(source: Path, target: Path, *, fresh_spec: bool, dry_run: bool) -> l
         actions.append(f"install {relative}")
         if not dry_run:
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(origin, destination)
-            managed[relative.as_posix()] = digest(destination)
+            destination.write_bytes(content)
+            managed[relative.as_posix()] = digest_bytes(content)
     if not dry_run:
         ensure_claude_adapter(target, False, actions)
         write_manifest(target, {"schema_version": 1, "framework_version": version(source),
@@ -115,17 +130,24 @@ def upgrade(source: Path, target: Path, *, dry_run: bool) -> dict:
     managed = dict(prior["managed"])
     actions = []
     conflicts = []
+    roles = sync_skills.role_adapters(source, model_config.load(target))
     for relative in source_files(source):
         key = relative.as_posix()
         destination = target / relative
-        origin = source / relative
+        content = desired_content(source, relative, roles)
         expected = managed.get(key)
         if destination.is_file():
             actual = digest(destination)
+            if relative in roles and actual == digest_bytes(content):
+                if expected != actual:
+                    actions.append(f"record configured adapter {key}")
+                    if not dry_run:
+                        managed[key] = actual
+                continue
             if expected is None or actual != expected:
                 conflicts.append(key)
                 continue
-            if actual == digest(origin):
+            if actual == digest_bytes(content):
                 continue
             actions.append(f"update {key}")
         elif expected is not None:
@@ -135,8 +157,8 @@ def upgrade(source: Path, target: Path, *, dry_run: bool) -> dict:
             actions.append(f"add {key}")
         if not dry_run:
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(origin, destination)
-            managed[key] = digest(destination)
+            destination.write_bytes(content)
+            managed[key] = digest_bytes(content)
     if not dry_run:
         ensure_claude_adapter(target, False, actions)
         write_manifest(target, {"schema_version": 1, "framework_version": version(source),

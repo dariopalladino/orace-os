@@ -30,6 +30,8 @@ python3 scripts/orace.py init --target /path/to/your/repo
 
 It copies a clean specification template and the managed runtime files needed by the CLI and host adapters. It does not copy the framework's internal tests, completed backlog entries, promotion history, or task workspaces. Existing `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` are preserved above an appended SDDF section. Existing project files are not overwritten; a later version is applied with `orace.py upgrade`. The discovery proposal is written under `.spec/40_workspace/` and does not approve architecture.
 
+To choose models at installation, add `--harness claude|codex|copilot` and the three optional `--workshop-model`, `--supervisor-model`, and `--subagent-model` flags. All default to `auto`, which inherits the host model. See [Context and model use](CONTEXT_MANAGEMENT.md) for launch and session controls.
+
 **2. Inspect and confirm what is already present.**
 
 Read `PROJECT_DISCOVERY.json`, confirm the actual stack and paths, and update `.spec/project.json` and `.spec/validation/ROUTING_CASES.json`. When an accepted architectural decision or production measure matters to the work, run `/orace-workshop .spec/15_architecture`. For an existing system this captures the architecture already in use; unresolved measures remain explicit until they can be measured.
@@ -95,7 +97,7 @@ Everything SDDF adds lives in `.spec/`, `.agents/`, `.claude/`, `.codex/`, `scri
 |---|---|---|
 | Claude Code | `.claude/skills` (synced from `.agents/skills`), `.claude/agents`, `.claude/commands` | read `SKILL.md` directly |
 | Codex | `AGENTS.md`, `.agents/skills`, `.codex/agents` | read `SKILL.md` directly |
-| GitHub Copilot | `.github/copilot-instructions.md` | read `SKILL.md` directly |
+| GitHub Copilot | `.github/copilot-instructions.md`, `.github/agents/` | read `SKILL.md` directly |
 | Anything else | point it at `AGENTS.md` | — |
 
 Run `python3 scripts/sync_skills.py` after adding a skill or role, and `--check` in CI. See the [Codex guide](CODEX.md) for Codex setup and smoke checks. Verify discovery in each host you actually use rather than assuming it; a direct instruction to read the skill file always works.

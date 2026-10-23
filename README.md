@@ -60,6 +60,20 @@ This is the Governed path for architecture work. Routine fixes can start from an
 
 ## Quick start
 
+### Context and model choices
+
+`init` sets each harness's workshop, supervisor, and subagent model to `auto` by default, so the host's own model configuration applies. To choose models for one harness, pass its model ids during initialization:
+
+```sh
+python3 scripts/orace.py init --target /path/to/your/repo --harness codex \
+  --workshop-model <codex-model-id> --supervisor-model <codex-model-id> \
+  --subagent-model <codex-model-id>
+```
+
+For a CLI workshop or main supervisor session, start with `python3 scripts/orace.py launch --harness codex --role workshop` (or `--role supervisor`) from the installed project. In an IDE or app, select that role's configured model in the host model picker. Generated Claude, Codex, and Copilot role agents use explicit model settings when configured; `auto` omits the model field. Host-specific model ids, session controls, and limitations are in [Context and model use](docs/CONTEXT_MANAGEMENT.md).
+
+Use one conversation per task. Compact a long session after persisting a concise checkpoint, and start a fresh chat for another task. The ORACE workshop now loads one phase reference at a time, and bootstrap loads one step at a time; their templates stay out of context until needed.
+
 ### First useful task
 
 ```bash

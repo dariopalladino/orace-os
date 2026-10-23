@@ -1,52 +1,28 @@
 # Operating contract
 
-This repository is governed by **SDDF** — specifications in `.spec/`, selected per task, with evidence preserved. This file is the short contract; it is loaded on every turn, so it stays short.
+This repository uses SDDF specifications in `.spec/`. Apply only the documents routed to the current task and preserve evidence. Explicit user and platform instructions take precedence.
 
-## Before you change anything
+## Before changing files
 
-1. Route. For an ad hoc request use `python3 scripts/orace.py task "<request>" --path <path>`; for a registered task use `python3 scripts/spec.py select --task <id>`. Confirm inferred surfaces and mode from the behavior, or apply `.spec/INDEX.md` by hand. Read `.spec/project.json` for active playbooks, module roots, orchestration, and checks.
-2. Read every selected document **in full**. Never read the specification store wholesale, and never load what routing did not select.
-3. Classify by meaning, not by folder. A token-storage change inside a UI component is `frontend`, `auth`, **and** `security`. Role and path are hints; they cannot infer every security implication.
-4. Use the `spec-workflow` skill at `.agents/skills/spec-workflow/SKILL.md`. Read it directly if skill discovery is unavailable.
+1. Route an ad hoc request with `python3 scripts/orace.py task "<request>" --path <path>`, or a registered task with `python3 scripts/spec.py select --task <id>`. Check the inferred surfaces and mode against the actual behavior; `.spec/INDEX.md` is the manual fallback. Read `.spec/project.json` for active playbooks, roots, roles, and checks.
+2. Read every selected document in full, including routed dependencies. Do not read `.spec/` wholesale or load unselected specifications. Classify by meaning: a UI token-storage change also touches auth and security.
+3. Use `.agents/skills/spec-workflow/SKILL.md` for the task lifecycle. Read it directly if skill discovery is unavailable.
 
-## Precedence
+Precedence: approved architecture measures and accepted ADRs → global policies → playbook packs → backlog task → code. When an architecture measure displaces a policy or playbook default, record the reason in task context. Never silently override security rules; escalate conflicts.
 
-Architecture (an approved quality-attribute scenario `Measure`, an accepted ADR) → global policy in `.spec/00_global/` → playbook packs in `.spec/10_playbooks/` → the backlog task → existing code.
+## Lifecycle and ownership
 
-Where a playbook or policy default and an architecture measure both speak to what you are changing, **the architecture governs** and the default falls away — record which, and why, in the task context. A security rule is the exception: it is never silently overridden by an ADR. Escalate instead. Platform and explicit user instructions outrank everything here.
+Choose the minimum safe mode: **Lite** for narrow repairs (route, execute, verify); **Standard** for features or refactors (criteria, plan, execute, verify, review); **Governed** for sensitive, contractual, irreversible, or architecture-significant work (select, propose, approve, execute, handoff, independent review, close). Escalate if scope or risk changes. Inferred modes do not remove security or architecture constraints.
 
-## Lifecycle
+- Governed proposals go only in `.spec/40_workspace/<task-id>/agent_<role>/`; change source only after required approval and within authorised paths.
+- Canonical policies, playbooks, architecture, `INDEX.md`, `project.json`, and `TASKS.md` change only by supervisor promotion recorded in `.spec/30_delivery/PROMOTION_LOG.md`.
+- For a missing contract, real conflict, or uncovered architecture decision, write `CLARIFICATIONS.md` and stop that work. Do not invent an answer.
+- Never weaken a test, lint rule, type check, security control, or acceptance criterion to pass. Report exact commands and actual results.
 
-Use the minimum safe mode from `scripts/orace.py task`:
+## Context and roles
 
-- **Lite:** route → execute → verify → compact result. Narrow, low-risk fixes need no separate proposal, backlog entry, or independent review.
-- **Standard:** route → criteria and concise plan → execute → verify → review. Features and refactoring use this path.
-- **Governed:** select → propose → approve → execute → handoff → independent review → close. Sensitive, contractual, irreversible, and architecture-significant work uses this path.
+Use one conversation per task; start a new one for unrelated work. At a stable checkpoint in a long task, persist decisions, changed paths, check results, and next action, then compact if needed. Reuse source text still in context; re-read after a scope change, new session, or compaction. A hash cannot restore forgotten text. Workshop phases load one at a time. Host commands and model choices are in `docs/CONTEXT_MANAGEMENT.md`.
 
-Escalate when scope or risk changes. Description-based classification is a hint; applicable security and architecture constraints never disappear because a mode was requested.
+With `supervisor` orchestration, run independent work packages in parallel through the host's subagents when available; sequence dependent work or packages that touch the same files. Dispatch bounded packages with disjoint ownership to roles in `.agents/roles/` (`.claude/agents/`, `.codex/agents/`, `.github/agents/`). Send routing **ids**, acceptance criteria, and paths, not specification bodies. Subagents load their own documents and return short handoffs. With `sequential` orchestration or no subagents, preserve the same handoffs and gates. A Governed reviewer must be independent of the implementer.
 
-- Governed proposal phases write only in `.spec/40_workspace/<task-id>/agent_<role>/`. Source files change only after required approval, only inside the authorised file set.
-- Canonical paths — `00_global/`, `10_playbooks/`, the architecture root, `INDEX.md`, `project.json`, `TASKS.md` — change only by supervisor promotion with a `.spec/30_delivery/PROMOTION_LOG.md` entry.
-- Missing contract, real conflict, or a decision no ADR covers: stop and write `CLARIFICATIONS.md`. Do not invent it.
-- Never weaken a test, lint rule, type check, security control, or acceptance criterion to make your work pass.
-- Report exact commands and real output. Never claim a check you did not run.
-
-## Context
-
-Reuse source text you still hold; re-read after a scope change, a new session, or a compaction. A file hash proves the file is unchanged — it never proves the text is still in your context.
-
-As a sub-agent you receive routing **ids**, not bodies: load the documents yourself, stay inside your package's file ownership, and return a handoff plus a short message — not specification text or transcripts.
-
-## Host roles
-
-Role definitions live in `.agents/roles/`. When `project.json` chooses `supervisor` orchestration, the main agent coordinates scoped work packages and uses host role agents when available. Codex uses `orace_*` agents from `.codex/agents/`; Claude Code uses `.claude/agents/`. Dispatch only bounded packages with disjoint file ownership, and give each agent routing ids and acceptance criteria. In `sequential` mode or without subagents, fulfill the same roles in order and preserve the same handoffs and review gates. The final reviewer must not be the implementer for Governed work.
-
-## Framework checks
-
-```sh
-python3 scripts/spec.py validate
-python3 scripts/sync_skills.py --check
-python3 -m unittest discover -s tests -v
-```
-
-Application checks come from `.spec/project.json` and run when the affected application exists here.
+Framework checks: `python3 scripts/spec.py validate`, `python3 scripts/sync_skills.py --check`, `python3 -m unittest discover -s tests -v`. Application checks come from `.spec/project.json` when the affected application exists.
