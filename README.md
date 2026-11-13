@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-SDDF is a portable governance layer for coding agents — Claude Code, Codex, GitHub Copilot, or anything you can point at a file. It wraps [ORACE](#orace-the-front-door), an architecture method that produces a traceable chain from business outcome to production metric, and turns that architecture into constraints an agent is handed at the moment it writes code.
+ORACE-OS is a portable governance layer for coding agents — Claude Code, Codex, GitHub Copilot, or anything you can point at a file. An architecture methodology that produces a traceable chain from business outcome to production metric, and turns that architecture into constraints an agent is handed at the moment it writes code.
 </p>
 
 
