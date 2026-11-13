@@ -1,8 +1,16 @@
-# SDDF — Spec-Driven Development Framework
+<p align="center">
+  <img src="assets/brand/orace-os-github-logo.png" alt="ORACE-OS logo" width="180">
+</p>
 
-**Architecture that AI coding agents actually read, and a lifecycle that makes them prove they read it.**
+<h1 align="center">ORACE-OS</h1>
 
-SDDF is a portable governance layer for coding agents — Claude Code, Codex, GitHub Copilot, or anything you can point at a file. It wraps [ORACE](#orace-the-front-door), an architecture method that produces a traceable chain from business outcome to production metric, and turns that architecture into constraints an agent is handed at the moment it writes code.
+<p align="center">
+  <b>An adaptive engineering framework that gives each change relevant architecture context, proportional controls, and inspectable verification evidence</b>
+</p>
+
+<p align="center">
+ORACE-OS is a portable governance layer for coding agents — Claude Code, Codex, GitHub Copilot, or anything you can point at a file. An architecture methodology that produces a traceable chain from business outcome to production metric, and turns that architecture into constraints an agent is handed at the moment it writes code.
+</p>
 
 Two halves, one line between them:
 
