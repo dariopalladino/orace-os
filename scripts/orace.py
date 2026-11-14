@@ -19,6 +19,7 @@ import init_project
 import architecture
 import distribution
 import model_config
+import migration
 
 LEVELS = ("lite", "standard", "governed")
 SENSITIVE = {"auth", "security", "data", "architecture", "governance", "infra", "hitl"}
@@ -837,6 +838,11 @@ def main(argv: list[str] | None = None) -> int:
     upgrader.add_argument("--target", required=True)
     upgrader.add_argument("--apply", action="store_true", help="Apply safe updates after preview")
     upgrader.add_argument("--json", action="store_true")
+    migrator = sub.add_parser("migrate", help="Preview or apply migration from a pre-manifest ORACE installation")
+    migrator.add_argument("--target", required=True)
+    migrator.add_argument("--report", help="Preview report path (default: ORACE_MIGRATION_REPORT.json in target)")
+    migrator.add_argument("--apply", action="store_true", help="Apply an unchanged preview report")
+    migrator.add_argument("--json", action="store_true")
     doctor = sub.add_parser("doctor", help="Diagnose routing configuration and managed runtime drift")
     doctor.add_argument("--json", action="store_true")
     coverage_cmd = sub.add_parser("coverage", help="Show routing coverage for paths or a git diff")
@@ -900,6 +906,38 @@ def main(argv: list[str] | None = None) -> int:
     runner.add_argument("--max-output", type=int, default=12000)
     args = parser.parse_args(argv)
     try:
+        if args.command == "migrate":
+            target = Path(args.target).expanduser().resolve()
+            report_path = (Path(args.report).expanduser().resolve() if args.report else
+                           target / migration.REPORT_NAME)
+            source = Path(__file__).resolve().parent.parent
+            try:
+                if report_path.is_relative_to(target):
+                    relative_report = report_path.relative_to(target)
+                    if (relative_report.parts[0] in {".spec", ".agents", ".claude", ".codex",
+                                                     ".github", "scripts", "benchmarks", "docs"}
+                            or relative_report in {Path(name) for name in init_project.MERGE_FILES}):
+                        raise ValueError("Migration report must be outside managed or legacy paths")
+                if args.apply:
+                    report = migration.apply(source, target, report_path)
+                else:
+                    report = migration.preview(source, target)
+                    report_path.parent.mkdir(parents=True, exist_ok=True)
+                    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+            except (ValueError, OSError) as exc:
+                raise spec.SpecError(str(exc)) from exc
+            if args.json:
+                print(json.dumps(report, indent=2))
+            else:
+                print(f"Migration {report['status']}: {report['legacy_spec_files']} legacy spec files")
+                print(f"Report: {report_path}")
+                print(f"Archive: {report['archive']}")
+                print(f"Runtime collisions: {len(report['runtime_files_to_replace'])}")
+                for item in report["blockers"]:
+                    print(f"Blocker: {item}")
+                if not args.apply and not report["blockers"]:
+                    print("Preview only; pass --apply after reviewing the report")
+            return 1 if report["blockers"] else 0
         if args.command == "upgrade":
             target = Path(args.target).expanduser().resolve()
             if not target.is_dir():

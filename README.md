@@ -118,7 +118,7 @@ During Phase A, the workshop writes the project-specific technology baseline tha
 
 ### An existing repository
 
-Use the same `init` command on a branch. It copies a clean specification template and a managed runtime—CLI scripts, skills, host adapters, and the PR check—while leaving the framework's internal tests and task history behind. It **merges** rather than overwrites your `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. Existing project files are preserved; repeat installations use `upgrade`.
+Use the same `init` command when the target repository has no `.spec/`. Create a branch in that **target repository** to review the installation; no branch is needed in ORACE-OS. It copies a clean specification template and a managed runtime—CLI scripts, skills, host adapters, and the PR check—while leaving the framework's internal tests and task history behind. It **merges** rather than overwrites your `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`. Existing project files are preserved; repeat installations use `upgrade`. A pre-manifest ORACE repository with an existing `.spec/` uses `migrate` below.
 
 Then:
 
@@ -152,6 +152,16 @@ Full detail in [`docs/ADOPTION.md`](docs/ADOPTION.md). A complete requirement fo
 
 `upgrade --target <repo>` previews updates from a newer framework checkout. Add `--apply` to replace only managed files whose hashes still match the installed version. Project edits are preserved and reported as conflicts; `doctor` reports routing and managed-file drift. The installed runtime version and hashes live in `.spec/installation.json`.
 
+For a **pre-manifest ORACE installation** with an existing `.spec/`, create a branch in the older **target project**, then run `migrate` from the checkout of the new ORACE-OS version. The first command writes `ORACE_MIGRATION_REPORT.json` in the target and changes nothing else; the second requires that report and rejects any changed legacy input:
+
+```sh
+cd /path/to/new/orace-os
+python3 scripts/orace.py migrate --target /path/to/older/project
+python3 scripts/orace.py migrate --target /path/to/older/project --apply
+```
+
+Migration archives the complete old `.spec/` and replaced runtime files under `.spec/50_archive/legacy-<fingerprint>/`, installs a clean current specification store and runtime, and registers `.spec/legacy/BRIDGE.md` in the new routing index. The bridge and its `REFERENCES.json` point to old architecture, backlog, workspace, and index documents as historical references; they do not promote old requirements automatically. Review the new `.spec/project.json`, instruction files, and any retained old runtime extras, then run `spec.py validate`. Future `upgrade` runs preserve the bridge row as a project edit and report the index as a conflict. See [legacy migration](docs/ADOPTION.md#legacy-orace-installation).
+
 ---
 
 ## What's in the box
@@ -175,7 +185,7 @@ Full detail in [`docs/ADOPTION.md`](docs/ADOPTION.md). A complete requirement fo
 | `.spec/30_delivery/PROMOTION_LOG.md` | Evidence for every canonical change |
 | `.spec/40_workspace/<task-id>/` | Task context, proposals, handoffs, reviews |
 | `scripts/spec.py` | Validate, select, scaffold |
-| `scripts/orace.py` | Init, task, run, explain, coverage, impact, check, verify, review, doctor, upgrade |
+| `scripts/orace.py` | Init, migrate, task, run, explain, coverage, impact, check, verify, review, doctor, upgrade |
 | `scripts/architecture.py`, `scripts/distribution.py`, `scripts/benchmark.py` | Architecture links, managed installation, and measurement |
 | `.github/workflows/orace-check.yml` | Informational architecture and routing summary for pull requests |
 | `benchmarks/` | Routing probes and instructions for recording real comparisons |

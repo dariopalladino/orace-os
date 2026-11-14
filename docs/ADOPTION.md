@@ -20,7 +20,7 @@ The completion response includes token usage for that workshop invocation when t
 
 ## Existing repository
 
-Work on a branch. Nothing here needs to change your source layout.
+Create a branch in the **target application repository** before installing ORACE-OS there, so you can review the added files as a normal project change. The ORACE-OS framework checkout is only the source of the installer; it needs no new branch for this operation. Nothing here needs to change the application's source layout. If the target already has a pre-manifest ORACE `.spec/`, follow [Legacy ORACE installation](#legacy-orace-installation) instead.
 
 **1. Copy the framework in.**
 
@@ -80,6 +80,30 @@ For a change in a pull request, `python3 scripts/orace.py check --diff origin/ma
 For an external coding method, export a task plan with `--executor external --external-name <method> --output <plan.json>`. `orace.py review` preflights its JSON handoff against captured evidence. If that method has an executable, `orace.py run --plan <plan.json> --command '<executor command>' --evidence <new-evidence.json>` can invoke it, enforce changed-file scope, and run configured checks. Governed plans require a plan-bound approval record. The contract and limits are in [`EXECUTION_ADAPTERS.md`](EXECUTION_ADAPTERS.md).
 
 For later framework versions, run the newer checkout's `python3 scripts/orace.py upgrade --target /path/to/repo` to preview file changes, then repeat with `--apply`. Managed files edited by the project are preserved as conflicts. Run `doctor` and `spec.py validate` after an upgrade.
+
+## Legacy ORACE installation
+
+Use this path when the target application repository already has `.spec/` but no `.spec/installation.json`. Create a branch **in that target repository** to review and commit the migration. Run the commands from a checkout of the **new ORACE-OS version**—the directory containing the new `scripts/orace.py`. The `--target` path points to the older project being migrated:
+
+```sh
+cd /path/to/new/orace-os
+python3 scripts/orace.py migrate --target /path/to/older/project
+python3 scripts/orace.py migrate --target /path/to/older/project --apply
+```
+
+The preview writes `/path/to/repo/ORACE_MIGRATION_REPORT.json`. Read its legacy file count, runtime collisions, instruction files, and blockers before applying. `--report /path/to/report.json` selects another report path. Apply requires the same report and verifies the old specification and overwritten files have not changed since preview. Symlinked inputs are blockers. A repository with an installation manifest uses `upgrade` instead.
+
+Apply archives the **entire** prior `.spec/` under `.spec/50_archive/legacy-<fingerprint>/spec/`. It also backs up each replaced runtime or instruction file under that archive's `replaced/` directory. It installs the current clean specification template and managed runtime, and merges host instruction files. An existing `.claude/skills/` directory is backed up; current ORACE skill names are refreshed while unrelated project skills are retained. Old runtime files without a corresponding current managed path are retained for review.
+
+The new `.spec/legacy/BRIDGE.md` is registered as `legacy-bridge` in `.spec/INDEX.md`. `.spec/legacy/REFERENCES.json` maps old architecture, backlog, workspace, and index files to archived paths and hashes. These are historical references, not active requirements. Inspect and adapt accepted decisions and active tasks individually before adding their rows to the current index. The new `.spec/project.json` starts with no active playbooks or module roots, so confirm the actual stack, roots, model choices, and checks. Review old text in `AGENTS.md`, `CLAUDE.md`, and Copilot instructions for obsolete commands. Then run:
+
+```sh
+python3 scripts/spec.py validate
+python3 scripts/orace.py discover --target /path/to/repo
+python3 scripts/orace.py doctor
+```
+
+Future `upgrade` previews report `.spec/INDEX.md` as a project conflict because its bridge row must be preserved. Review future base index changes manually and keep that row.
 
 ## Adapting the packs to your conventions
 
