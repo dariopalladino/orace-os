@@ -1,6 +1,6 @@
 # Adoption
 
-How to put SDDF into a repository. Start with discovery and one task; complete the full architecture model when the system needs it.
+How to put ORACE-OS into a repository. Start with discovery and one task; complete the full architecture model when the system needs it.
 
 ## New system
 

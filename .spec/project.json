@@ -20,13 +20,14 @@
 
   "_comment_module_roots": "Maps a path prefix to the surfaces it implies. /spec-bootstrap proposes roots from the confirmed module view and technology profile. Directories need not exist yet. A path may appear under several surfaces; every source root also implies 'implementation'.",
   "module_roots": {
-    "backend": ["services/", "api/"],
-    "frontend": ["web/"],
-    "native": ["mobile/"],
-    "data": ["services/*/migrations/", "db/"],
-    "infra": ["infra/", ".github/workflows/"],
+    "backend": ["app/services/", "app/api/"],
+    "frontend": ["app/web/"],
+    "native": ["app/mobile/"],
+    "data": ["app/services/*/migrations/", "db/"],
+    "infra": ["app/infra/", ".github/workflows/"],
+    "ai": ["app/services/workers/"],
     "testing": ["tests/"],
-    "implementation": ["services/", "api/", "web/", "mobile/"]
+    "implementation": ["app/services/", "app/api/", "app/web/", "app/mobile/"]
   },
 
   "context_budget": {

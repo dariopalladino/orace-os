@@ -1,6 +1,6 @@
 # Copilot instructions
 
-This repository is governed by SDDF. Follow `AGENTS.md`, and read `.agents/skills/spec-workflow/SKILL.md` before making a change — Copilot does not discover skills automatically, so read that file directly.
+This repository is governed by ORACE-OS. Follow `AGENTS.md`, and read `.agents/skills/spec-workflow/SKILL.md` before making a change — Copilot does not discover skills automatically, so read that file directly.
 
 Do not read the whole `.spec/` store. Select what the task needs through `.spec/INDEX.md`:
 

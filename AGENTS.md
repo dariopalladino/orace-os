@@ -1,6 +1,6 @@
 # Operating contract
 
-This repository uses SDDF specifications in `.spec/`. Apply only the documents routed to the current task and preserve evidence. Explicit user and platform instructions take precedence.
+This repository uses ORACE-OS specifications in `.spec/`. Apply only the documents routed to the current task and preserve evidence. Explicit user and platform instructions take precedence.
 
 ## Before changing files
 
